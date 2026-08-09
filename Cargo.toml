@@ -9,6 +9,7 @@ members = [
     "crates/dhi-brain",
     "crates/dhi-token",
     "crates/dhi-llm",
+    "crates/dhi-tools",
 ]
 
 [workspace.package]
