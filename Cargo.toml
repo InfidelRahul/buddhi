@@ -13,6 +13,8 @@ members = [
     "crates/dhi-security",
     "crates/dhi-context",
     "crates/dhi-verify",
+    "crates/dhi-rules",
+    "crates/dhi-memory",
 ]
 
 [workspace.package]

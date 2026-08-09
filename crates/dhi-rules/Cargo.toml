@@ -1,0 +1,14 @@
+[package]
+name = "dhi-rules"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+dhi-core = { path = "../dhi-core" }
+dhi-context = { path = "../dhi-context" }
+anyhow.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
+tracing.workspace = true
+tree-sitter.workspace = true
