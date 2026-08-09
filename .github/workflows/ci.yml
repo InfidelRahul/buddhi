@@ -9,6 +9,8 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings"
+  # Force Cargo to allow unstable features required by gigatoken
+  CARGO_UNSTABLE_PROFILE_RUSTFLAGS: "true"
 
 jobs:
   quality-gates:
@@ -19,9 +21,10 @@ jobs:
     - name: Install Python headers for pyo3 (required by gigatoken)
       run: sudo apt-get update && sudo apt-get install -y python3-dev
       
-    - name: Install Rust toolchain (Nightly)
-      uses: dtolnay/rust-toolchain@nightly
+    - name: Install Rust toolchain (Pinned Nightly)
+      uses: dtolnay/rust-toolchain@master
       with:
+        toolchain: nightly-2026-08-08
         components: rustfmt, clippy
         
     - name: Cache dependencies
@@ -31,7 +34,7 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           target
-        key: ${{ runner.os }}-cargo-nightly-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-nightly-0808-${{ hashFiles('**/Cargo.lock') }}
         
     - name: Check formatting
       run: cargo fmt --all -- --check

@@ -1,0 +1,3 @@
+[unstable]
+# Allow gigatoken's Cargo.toml to use profile-rustflags
+profile-rustflags = true
