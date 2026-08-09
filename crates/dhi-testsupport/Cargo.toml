@@ -8,3 +8,4 @@ license.workspace = true
 dhi-core = { path = "../dhi-core" }
 dhi-config = { path = "../dhi-config" }
 anyhow.workspace = true
+tokio.workspace = true
