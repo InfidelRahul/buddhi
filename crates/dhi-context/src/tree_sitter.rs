@@ -1,8 +1,9 @@
 use dhi_core::error::{DhiError, Result};
+use std::sync::Mutex;
 use tree_sitter::{Language, Parser};
 
 pub struct RustSymbolExtractor {
-    parser: Parser,
+    parser: Mutex<Parser>,
 }
 
 impl RustSymbolExtractor {
@@ -12,12 +13,18 @@ impl RustSymbolExtractor {
         parser
             .set_language(&language)
             .map_err(|e| DhiError::Config(format!("Failed to set tree-sitter language: {}", e)))?;
-        Ok(Self { parser })
+        Ok(Self {
+            parser: Mutex::new(parser),
+        })
     }
 
     pub fn extract_symbols(&self, source_code: &str) -> Result<Vec<String>> {
-        let tree = self
+        let mut parser = self
             .parser
+            .lock()
+            .map_err(|e| DhiError::Config(format!("Failed to acquire parser lock: {}", e)))?;
+
+        let tree = parser
             .parse(source_code, None)
             .ok_or_else(|| DhiError::Config("Tree-sitter parse failed".to_string()))?;
 
