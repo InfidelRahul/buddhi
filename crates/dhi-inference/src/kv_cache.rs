@@ -30,4 +30,22 @@ impl KvCache {
         self.cache[layer_idx] = (new_k, new_v);
         Ok(())
     }
+
+    pub fn get(&self, layer_idx: usize) -> Result<(&Tensor, &Tensor)> {
+        if layer_idx >= self.cache.len() {
+            return Err(candle_core::Error::Msg(
+                "Layer index out of bounds".to_string(),
+            ));
+        }
+        let (k, v) = &self.cache[layer_idx];
+        Ok((k, v))
+    }
+
+    pub fn len(&self, layer_idx: usize) -> usize {
+        if layer_idx < self.cache.len() {
+            self.cache[layer_idx].0.dim(2).unwrap_or(0)
+        } else {
+            0
+        }
+    }
 }
