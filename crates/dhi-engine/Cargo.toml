@@ -1,0 +1,20 @@
+[package]
+name = "dhi-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+dhi-core = { path = "../dhi-core" }
+dhi-config = { path = "../dhi-config" }
+dhi-brain = { path = "../dhi-brain" }
+dhi-token = { path = "../dhi-token" }
+dhi-llm = { path = "../dhi-llm" }
+dhi-tools = { path = "../dhi-tools" }
+dhi-context = { path = "../dhi-context" }
+dhi-rules = { path = "../dhi-rules" }
+dhi-memory = { path = "../dhi-memory" }
+anyhow.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+futures-util.workspace = true

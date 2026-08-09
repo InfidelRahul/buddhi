@@ -15,6 +15,7 @@ members = [
     "crates/dhi-verify",
     "crates/dhi-rules",
     "crates/dhi-memory",
+    "crates/dhi-engine",
 ]
 
 [workspace.package]
