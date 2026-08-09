@@ -9,3 +9,4 @@ dhi-core = { path = "../dhi-core" }
 anyhow.workspace = true
 regex.workspace = true
 tracing.workspace = true
+serde.workspace = true
