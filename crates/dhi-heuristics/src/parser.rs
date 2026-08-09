@@ -1,6 +1,6 @@
 use crate::types::HeuristicHints;
-use dhi_core::types::TaskType;
 use dhi_core::error::{DhiError, Result};
+use dhi_core::types::TaskType;
 use regex::Regex;
 
 pub struct HeuristicParser {
@@ -12,10 +12,8 @@ impl HeuristicParser {
         // Detect file paths like src/main.rs or ./file.txt
         let file_pattern = Regex::new(r"(?:^|\s)([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+)(?:$|\s)")
             .map_err(|e| DhiError::Config(format!("Regex compilation failed: {}", e)))?;
-        
-        Ok(Self {
-            file_pattern,
-        })
+
+        Ok(Self { file_pattern })
     }
 
     pub fn parse(&self, input: &str) -> HeuristicHints {
@@ -42,7 +40,9 @@ impl HeuristicParser {
         }
 
         if lower_input.contains("don't break") || lower_input.contains("do not break") {
-            hints.detected_constraints.push("preserve_tests".to_string());
+            hints
+                .detected_constraints
+                .push("preserve_tests".to_string());
         }
 
         hints

@@ -1,5 +1,5 @@
+use dhi_core::types::{PrivacyLevel, RiskLevel, TaskType};
 use serde::{Deserialize, Serialize};
-use dhi_core::types::{TaskType, RiskLevel, PrivacyLevel};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OptimizedIntent {

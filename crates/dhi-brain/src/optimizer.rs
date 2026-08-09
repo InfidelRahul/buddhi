@@ -1,6 +1,6 @@
 use crate::types::OptimizedIntent;
-use dhi_heuristics::types::HeuristicHints;
 use dhi_core::error::Result;
+use dhi_heuristics::types::HeuristicHints;
 use std::time::Duration;
 
 pub struct LocalBrainOptimizer {
@@ -16,10 +16,14 @@ impl LocalBrainOptimizer {
         }
     }
 
-    pub async fn optimize(&self, _raw_input: &str, hints: &HeuristicHints) -> Result<OptimizedIntent> {
+    pub async fn optimize(
+        &self,
+        _raw_input: &str,
+        hints: &HeuristicHints,
+    ) -> Result<OptimizedIntent> {
         // Placeholder for local model inference.
         // In Phase 4, this will call the Q4 model with a timeout.
-        
+
         let task_type = match &hints.detected_task_type {
             Some(t) => t.clone(),
             None => dhi_core::types::TaskType::Unknown,

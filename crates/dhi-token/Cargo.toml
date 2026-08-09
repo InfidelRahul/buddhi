@@ -8,5 +8,5 @@ license.workspace = true
 dhi-core = { path = "../dhi-core" }
 anyhow.workspace = true
 tracing.workspace = true
-# Direct dependency on the Rust core of Gigatoken
-gigatoken = { git = "https://github.com/marcelroed/gigatoken.git" }
+# The package is named "gigatoken" but the lib target is "gigatoken_rs"
+gigatoken_rs = { package = "gigatoken", git = "https://github.com/marcelroed/gigatoken.git" }

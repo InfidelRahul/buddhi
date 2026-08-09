@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use dhi_core::types::TaskType;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HeuristicHints {

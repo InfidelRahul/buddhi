@@ -1,9 +1,9 @@
-use crate::types::{Task, TaskContract};
 use crate::error::Result;
-use uuid::Uuid;
-use std::path::PathBuf;
-use std::collections::VecDeque;
 use crate::types::EngineEvent;
+use crate::types::{Task, TaskContract};
+use std::collections::VecDeque;
+use std::path::PathBuf;
+use uuid::Uuid;
 
 pub struct Session {
     pub id: Uuid,

@@ -1,8 +1,8 @@
 use clap::Parser;
-use dhi_config::loader::load_config;
-use dhi_heuristics::parser::HeuristicParser;
 use dhi_brain::optimizer::LocalBrainOptimizer;
+use dhi_config::loader::load_config;
 use dhi_core::session::Session;
+use dhi_heuristics::parser::HeuristicParser;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -23,7 +23,7 @@ async fn main() -> anyhow::Result<()> {
 
     let args = Args::parse();
     let config = load_config(&args.config)?;
-    
+
     tracing::info!("DHI Engine initialized successfully.");
 
     if let Some(task_input) = args.task {
@@ -37,10 +37,7 @@ async fn main() -> anyhow::Result<()> {
         );
 
         // 2. Create session
-        let mut session = Session::new(
-            std::env::current_dir()?,
-            std::env::current_dir()?,
-        );
+        let mut session = Session::new(std::env::current_dir()?, std::env::current_dir()?);
 
         // 3. Start task
         let task_id = session.start_task(task_input.clone())?;
@@ -56,7 +53,7 @@ async fn main() -> anyhow::Result<()> {
 
         // 6. Set contract in session (placeholder for now)
         // In a real scenario, we would convert OptimizedIntent to TaskContract
-        
+
         tracing::info!("Task processing pipeline completed successfully.");
     } else {
         tracing::warn!("No task provided. Use --task to specify a task.");
