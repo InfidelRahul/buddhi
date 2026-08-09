@@ -1,6 +1,5 @@
 use crate::error::Result;
-use crate::types::EngineEvent;
-use crate::types::{Task, TaskContract};
+use crate::types::{EngineEvent, Task, TaskContract};
 use std::collections::VecDeque;
 use std::path::PathBuf;
 use uuid::Uuid;

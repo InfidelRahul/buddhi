@@ -1,4 +1,5 @@
 use clap::Parser;
+use dhi_brain::contract::IntentContractBuilder;
 use dhi_brain::optimizer::LocalBrainOptimizer;
 use dhi_config::loader::load_config;
 use dhi_core::session::Session;
@@ -51,10 +52,12 @@ async fn main() -> anyhow::Result<()> {
         let intent = brain_optimizer.optimize(&task_input, &hints).await?;
         tracing::debug!("Optimized intent: {:?}", intent);
 
-        // 6. Set contract in session (placeholder for now)
-        // In a real scenario, we would convert OptimizedIntent to TaskContract
+        // 6. Build and set contract
+        let contract =
+            IntentContractBuilder::build(task_id, &intent, config.budget.max_tokens_per_turn);
+        session.set_contract(contract);
 
-        tracing::info!("Task processing pipeline completed successfully.");
+        tracing::info!("Task contract built and set in session.");
     } else {
         tracing::warn!("No task provided. Use --task to specify a task.");
     }
