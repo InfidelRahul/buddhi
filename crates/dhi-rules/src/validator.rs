@@ -1,4 +1,4 @@
-use crate::types::{ProjectRule, RuleSet};
+use crate::types::RuleSet;
 use dhi_context::tree_sitter::RustSymbolExtractor;
 use dhi_core::error::Result;
 
@@ -13,10 +13,26 @@ impl RuleValidator {
         })
     }
 
-    pub fn validate(&self, _source_code: &str, _rules: &RuleSet) -> Result<Vec<String>> {
-        // Placeholder for AST traversal using tree-sitter to check forbid_ast_nodes
-        // In a real implementation, we would walk the tree and match node kinds
-        let violations = Vec::new();
+    pub fn validate(&self, source_code: &str, rules: &RuleSet) -> Result<Vec<String>> {
+        let mut violations = Vec::new();
+
+        // Use the extractor to parse the AST and retrieve symbols
+        // This satisfies dead-code analysis and enables basic rule checking
+        let symbols = self.extractor.extract_symbols(source_code)?;
+
+        for rule in &rules.rules {
+            for forbidden in &rule.forbid_ast_nodes {
+                // Skeleton Logic: Check if any extracted symbol matches the forbidden list.
+                // Future Phase: Implement deep AST traversal for method calls like .unwrap()
+                if symbols.iter().any(|s| s == forbidden) {
+                    violations.push(format!(
+                        "Rule '{}' violated: found forbidden symbol '{}'",
+                        rule.id, forbidden
+                    ));
+                }
+            }
+        }
+
         Ok(violations)
     }
 }
