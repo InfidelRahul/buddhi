@@ -18,6 +18,6 @@ impl TransformerBlock {
         // 2. MLP Sublayer:       x = x + MLP(RmsNorm(x))
 
         // Skeleton: Pass tensor through unchanged until weights are loaded
-        x.clone()
+        Ok(x.clone())
     }
 }
