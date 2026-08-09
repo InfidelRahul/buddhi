@@ -1,0 +1,12 @@
+[package]
+name = "dhi-token"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+dhi-core = { path = "../dhi-core" }
+anyhow.workspace = true
+tracing.workspace = true
+# Direct dependency on the Rust core of Gigatoken
+gigatoken = { git = "https://github.com/marcelroed/gigatoken.git" }

@@ -7,6 +7,7 @@ members = [
     "crates/dhi-testsupport",
     "crates/dhi-heuristics",
     "crates/dhi-brain",
+    "crates/dhi-token",
 ]
 
 [workspace.package]
