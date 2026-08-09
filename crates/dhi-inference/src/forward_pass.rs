@@ -2,33 +2,65 @@ use crate::kv_cache::KvCache;
 use crate::transformer::TransformerBlock;
 use crate::weights::ModelWeights;
 use candle_core::{DType, Device, Tensor};
+use candle_nn::VarBuilder;
 use dhi_core::error::{DhiError, Result};
 
 pub struct ForwardPass {
     blocks: Vec<TransformerBlock>,
+    embed_tokens: candle_nn::Embedding,
+    norm: candle_nn::RmsNorm,
+    lm_head: candle_nn::Linear,
     device: Device,
 }
 
 impl ForwardPass {
-    pub fn new(_weights: &ModelWeights) -> Result<Self> {
-        // Skeleton: Initialize 4 dummy transformer blocks
-        // Real Qwen models have 24-32+ blocks
-        let num_layers = 4;
-        let blocks = (0..num_layers).map(TransformerBlock::new).collect();
+    pub fn new(weights: &ModelWeights) -> Result<Self> {
+        let device = Device::Cpu;
+        let hidden_size = 1024; // Qwen 0.5B hidden size
+        let num_layers = 4; // Skeleton layer count
+        let vocab_size = 32000;
+
+        // Create VarBuilder from loaded tensors
+        let vb = VarBuilder::from_tensors(&weights.tensors, DType::F32, &device);
+
+        let embed_tokens =
+            candle_nn::embedding(vocab_size, hidden_size, vb.pp("model.embed_tokens"))
+                .map_err(|e| DhiError::Config(format!("Failed to load embeddings: {}", e)))?;
+
+        let norm = candle_nn::rms_norm(hidden_size, 1e-6, vb.pp("model.norm"))
+            .map_err(|e| DhiError::Config(format!("Failed to load final norm: {}", e)))?;
+
+        let lm_head = candle_nn::linear(hidden_size, vocab_size, vb.pp("lm_head"))
+            .map_err(|e| DhiError::Config(format!("Failed to load lm_head: {}", e)))?;
+
+        let mut blocks = Vec::with_capacity(num_layers);
+        for i in 0..num_layers {
+            let block = TransformerBlock::load(&vb, i, hidden_size)
+                .map_err(|e| DhiError::Config(format!("Failed to load block {}: {}", i, e)))?;
+            blocks.push(block);
+        }
 
         Ok(Self {
             blocks,
-            device: Device::Cpu,
+            embed_tokens,
+            norm,
+            lm_head,
+            device,
         })
     }
 
     pub fn run(&self, input_ids: &[u32], cache: &mut KvCache) -> Result<Vec<f32>> {
-        // 1. Embedding Lookup (Skeleton: create dummy tensor)
         let seq_len = input_ids.len();
-        let hidden_size = 1024; // Qwen 0.5B hidden size
 
-        let mut x = Tensor::zeros(&[1, seq_len, hidden_size], DType::F32, &self.device)
-            .map_err(|e| DhiError::Config(format!("Tensor creation failed: {}", e)))?;
+        // Convert input_ids to tensor
+        let input_tensor = Tensor::from_vec(input_ids.to_vec(), &[1, seq_len], &self.device)
+            .map_err(|e| DhiError::Config(format!("Failed to create input tensor: {}", e)))?;
+
+        // 1. Embedding Lookup
+        let mut x = self
+            .embed_tokens
+            .forward(&input_tensor)
+            .map_err(|e| DhiError::Config(format!("Embedding lookup failed: {}", e)))?;
 
         // 2. Pass through all Transformer Blocks
         for block in &self.blocks {
@@ -37,10 +69,23 @@ impl ForwardPass {
                 .map_err(|e| DhiError::Config(format!("Block forward failed: {}", e)))?;
         }
 
-        // 3. Final Norm & LM Head (Skeleton: return dummy logits)
-        let vocab_size = 32000;
-        let dummy_logits = vec![0.0; vocab_size];
+        // 3. Final Norm & LM Head
+        let x = self
+            .norm
+            .forward(&x)
+            .map_err(|e| DhiError::Config(format!("Final norm failed: {}", e)))?;
 
-        Ok(dummy_logits)
+        let logits = self
+            .lm_head
+            .forward(&x)
+            .map_err(|e| DhiError::Config(format!("LM head failed: {}", e)))?;
+
+        // Extract logits for the last token
+        let last_logits = logits.get(0)?.get(seq_len - 1)?;
+        let logits_vec: Vec<f32> = last_logits
+            .to_vec1()
+            .map_err(|e| DhiError::Config(format!("Failed to convert logits: {}", e)))?;
+
+        Ok(logits_vec)
     }
 }
