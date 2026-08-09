@@ -11,6 +11,7 @@ members = [
     "crates/dhi-llm",
     "crates/dhi-tools",
     "crates/dhi-security",
+    "crates/dhi-context",
 ]
 
 [workspace.package]
@@ -35,3 +36,5 @@ regex = "1.10"
 reqwest = { version = "0.12", features = ["json", "rustls-tls", "stream"] }
 async-trait = "0.1"
 futures-util = "0.3"
+tree-sitter = "0.22"
+tree-sitter-rust = "0.21"
