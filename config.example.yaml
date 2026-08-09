@@ -1,9 +1,19 @@
 local_brain:
   enabled: true
   model_path: "models/qwen2.5-coder-instruct-q4.gguf"
+  max_output_tokens: 120
   timeout_ms: 800
 
 cloud:
   provider: "openai"
   model: "gpt-4o"
   api_key_env: "OPENAI_API_KEY"
+  max_output_tokens: 1024
+
+budget:
+  max_tokens_per_turn: 4096
+  max_total_tokens_per_task: 16384
+
+security:
+  sandbox_enabled: true
+  secret_scanning_enabled: true

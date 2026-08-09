@@ -1,3 +1,5 @@
 rules:
   - id: "no-unwrap"
     description: "Do not use unwrap() in production code."
+    target_glob: "src/**/*.rs"
+    forbid_ast_nodes: ["unwrap"]
