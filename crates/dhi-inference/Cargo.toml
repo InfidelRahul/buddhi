@@ -13,3 +13,4 @@ candle-nn.workspace = true
 candle-transformers.workspace = true
 memmap2.workspace = true
 tokenizers.workspace = true
+rand.workspace = true
