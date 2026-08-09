@@ -1,7 +1,7 @@
+use crate::patch_safety::{PatchProposal, PatchSafety};
 use crate::types::{Tool, ToolResult};
 use dhi_core::error::{DhiError, Result};
 use dhi_security::path_guard::PathGuard;
-use std::fs;
 use std::path::Path;
 
 pub struct ReplaceTool;
@@ -26,22 +26,31 @@ impl Tool for ReplaceTool {
             .and_then(|r| r.as_str())
             .ok_or_else(|| DhiError::ToolExecution("Missing replacement argument".to_string()))?;
 
+        let dry_run = args
+            .get("dry_run")
+            .and_then(|d| d.as_bool())
+            .unwrap_or(false);
+
         let safe_path = PathGuard::validate(path, project_root)?;
-        let content =
-            fs::read_to_string(&safe_path).map_err(|e| DhiError::ToolExecution(e.to_string()))?;
 
-        if !content.contains(original) {
-            return Err(DhiError::ToolExecution(
-                "Original code not found in file".to_string(),
-            ));
-        }
+        let proposal = PatchProposal {
+            path: &safe_path,
+            original,
+            replacement,
+            dry_run,
+        };
 
-        let new_content = content.replace(original, replacement);
-        fs::write(safe_path, new_content).map_err(|e| DhiError::ToolExecution(e.to_string()))?;
+        let result = PatchSafety::apply(&proposal)?;
+
+        let status = if result.applied {
+            "Patch applied successfully"
+        } else {
+            "Dry-run completed. No changes written to disk."
+        };
 
         Ok(ToolResult {
             success: true,
-            output: "Replacement successful".to_string(),
+            output: format!("{}\n\n{}", status, result.diff),
             token_cost: 0,
         })
     }
