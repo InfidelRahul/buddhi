@@ -2,7 +2,7 @@ use crate::forward_pass::ForwardPass;
 use crate::kv_cache::KvCache;
 use crate::loader::LocalModel;
 use candle_core::Device;
-use dhi_core::error::Result;
+use dhi_core::error::{DhiError, Result};
 
 pub struct InferencePipeline {
     model: LocalModel,
@@ -13,8 +13,10 @@ pub struct InferencePipeline {
 impl InferencePipeline {
     pub fn try_new(model: LocalModel) -> Result<Self> {
         let forward_pass = ForwardPass::new(&model.weights)?;
-        // Use CPU device for skeleton; will be configurable in future phases
-        let cache = KvCache::new(Device::Cpu);
+
+        // Use CPU device for skeleton; pass dummy layer count (4) to match forward_pass.rs
+        let cache = KvCache::new(Device::Cpu, 4)
+            .map_err(|e| DhiError::Config(format!("Failed to initialize KV cache: {}", e)))?;
 
         Ok(Self {
             model,
