@@ -2,7 +2,7 @@ use crate::registry::ToolRegistry;
 use crate::types::ToolResult;
 use dhi_core::error::{DhiError, Result};
 use dhi_core::types::ToolCall;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 pub struct ToolExecutor {
     registry: ToolRegistry,
