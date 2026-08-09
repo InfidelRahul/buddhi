@@ -1,17 +1,14 @@
 [package]
-name = "dhi-cli"
+name = "dhi-brain"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [dependencies]
 dhi-core = { path = "../dhi-core" }
-dhi-config = { path = "../dhi-config" }
 dhi-heuristics = { path = "../dhi-heuristics" }
-dhi-brain = { path = "../dhi-brain" }
 anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 tokio.workspace = true
-clap.workspace = true
 tracing.workspace = true
-tracing-subscriber.workspace = true
-uuid.workspace = true

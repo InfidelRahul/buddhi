@@ -1,0 +1,10 @@
+use serde::{Deserialize, Serialize};
+use dhi_core::types::TaskType;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HeuristicHints {
+    pub detected_files: Vec<String>,
+    pub detected_symbols: Vec<String>,
+    pub detected_task_type: Option<TaskType>,
+    pub detected_constraints: Vec<String>,
+}
