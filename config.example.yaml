@@ -1,0 +1,9 @@
+local_brain:
+  enabled: true
+  model_path: "models/qwen2.5-coder-instruct-q4.gguf"
+  timeout_ms: 800
+
+cloud:
+  provider: "openai"
+  model: "gpt-4o"
+  api_key_env: "OPENAI_API_KEY"

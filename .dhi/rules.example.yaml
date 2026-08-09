@@ -1,0 +1,3 @@
+rules:
+  - id: "no-unwrap"
+    description: "Do not use unwrap() in production code."

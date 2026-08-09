@@ -1,15 +1,7 @@
-# DHI
+# DHI (Direct Human Intent)
 
-Token-minimal AI coding engine.
+A token-minimal AI coding engine.
 
-## Development
-
-Prerequisites:
-- Rust (stable)
-- Make
-
-Commands:
-- `make build`: Build the workspace.
-- `make test`: Run tests.
-- `make lint`: Run clippy.
-- `make fmt`: Format code.
+## Setup
+1. Copy config.example.yaml to config.yaml.
+2. Run make build.
