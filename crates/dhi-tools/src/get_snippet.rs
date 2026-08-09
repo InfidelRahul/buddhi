@@ -1,5 +1,6 @@
 use crate::types::{Tool, ToolResult};
 use dhi_core::error::{DhiError, Result};
+use dhi_security::path_guard::PathGuard;
 use std::fs;
 use std::path::Path;
 
@@ -11,7 +12,7 @@ impl Tool for GetSnippetTool {
         "get_snippet"
     }
 
-    async fn execute(&self, args: serde_json::Value) -> Result<ToolResult> {
+    async fn execute(&self, args: serde_json::Value, project_root: &Path) -> Result<ToolResult> {
         let path = args
             .get("path")
             .and_then(|p| p.as_str())
@@ -27,13 +28,9 @@ impl Tool for GetSnippetTool {
             .ok_or_else(|| DhiError::ToolExecution("Missing end argument".to_string()))?
             as usize;
 
-        let file_path = Path::new(path);
-        if !file_path.is_file() {
-            return Err(DhiError::ToolExecution(format!("{} is not a file", path)));
-        }
-
+        let safe_path = PathGuard::validate(path, project_root)?;
         let content =
-            fs::read_to_string(file_path).map_err(|e| DhiError::ToolExecution(e.to_string()))?;
+            fs::read_to_string(safe_path).map_err(|e| DhiError::ToolExecution(e.to_string()))?;
         let lines: Vec<&str> = content.lines().collect();
 
         if start >= end || start >= lines.len() {
@@ -41,11 +38,9 @@ impl Tool for GetSnippetTool {
         }
 
         let snippet: Vec<&str> = lines[start..end.min(lines.len())].to_vec();
-        let output = snippet.join("\n");
-
         Ok(ToolResult {
             success: true,
-            output,
+            output: snippet.join("\n"),
             token_cost: 0,
         })
     }

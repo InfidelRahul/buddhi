@@ -10,6 +10,7 @@ members = [
     "crates/dhi-token",
     "crates/dhi-llm",
     "crates/dhi-tools",
+    "crates/dhi-security",
 ]
 
 [workspace.package]
