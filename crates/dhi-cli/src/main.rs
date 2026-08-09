@@ -3,8 +3,14 @@ use dhi_brain::contract::IntentContractBuilder;
 use dhi_brain::optimizer::LocalBrainOptimizer;
 use dhi_config::loader::load_config;
 use dhi_core::session::Session;
+use dhi_engine::prompt::CloudPromptBuilder;
+use dhi_engine::r#loop::AgentLoop;
 use dhi_heuristics::parser::HeuristicParser;
+use dhi_llm::openai::OpenAiClient;
+use dhi_token::budget::TokenBudget;
+use dhi_token::counter::CharCounter;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 #[derive(Parser, Debug)]
 #[command(name = "dhi", about = "Token-minimal AI coding engine")]
@@ -55,9 +61,30 @@ async fn main() -> anyhow::Result<()> {
         // 6. Build and set contract
         let contract =
             IntentContractBuilder::build(task_id, &intent, config.budget.max_tokens_per_turn);
-        session.set_contract(contract);
+        session.set_contract(contract.clone());
 
-        tracing::info!("Task contract built and set in session.");
+        // 7. Initialize Engine Components
+        let counter = Arc::new(CharCounter);
+        let budget = TokenBudget::new(counter, config.budget.max_tokens_per_turn);
+
+        let api_key = std::env::var(&config.cloud.api_key_env).unwrap_or_default();
+        let provider = OpenAiClient::new(
+            api_key,
+            "https://api.openai.com/v1".to_string(),
+            config.cloud.model.clone(),
+        );
+
+        // 8. Build Prompt and Run Agent Loop
+        let rules = dhi_rules::loader::RuleLoader::load(&session.project_root)?;
+        let memory = dhi_memory::store::MemoryStore::load(&session.project_root)?;
+        let context = "fn main() { println!(\"Hello, world!\"); }"; // Placeholder context
+
+        let prompt = CloudPromptBuilder::build(&contract, &rules, &memory, context);
+
+        let mut agent_loop = AgentLoop::new(&provider, budget);
+        agent_loop.run(&contract, &prompt).await?;
+
+        tracing::info!("Agent loop completed successfully.");
     } else {
         tracing::warn!("No task provided. Use --task to specify a task.");
     }

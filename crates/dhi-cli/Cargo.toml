@@ -9,6 +9,12 @@ dhi-core = { path = "../dhi-core" }
 dhi-config = { path = "../dhi-config" }
 dhi-heuristics = { path = "../dhi-heuristics" }
 dhi-brain = { path = "../dhi-brain" }
+dhi-engine = { path = "../dhi-engine" }
+dhi-token = { path = "../dhi-token" }
+dhi-tools = { path = "../dhi-tools" }
+dhi-llm = { path = "../dhi-llm" }
+dhi-rules = { path = "../dhi-rules" }
+dhi-memory = { path = "../dhi-memory" }
 anyhow.workspace = true
 tokio.workspace = true
 clap.workspace = true
