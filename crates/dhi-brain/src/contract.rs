@@ -1,5 +1,5 @@
 use crate::types::OptimizedIntent;
-use dhi_core::types::{PrivacyLevel, RiskLevel, TaskContract, TaskType};
+use dhi_core::types::TaskContract;
 use uuid::Uuid;
 
 pub struct IntentContractBuilder;
