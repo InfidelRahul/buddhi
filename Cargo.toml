@@ -16,6 +16,7 @@ members = [
     "crates/dhi-rules",
     "crates/dhi-memory",
     "crates/dhi-engine",
+    "crates/dhi-inference",
 ]
 
 [workspace.package]
@@ -42,10 +43,8 @@ async-trait = "0.1"
 futures-util = "0.3"
 tree-sitter = "0.22"
 tree-sitter-rust = "0.21"
-
-[profile.release]
-opt-level = 3
-lto = "fat"
-codegen-units = 1
-strip = "symbols"
-panic = "abort"
+candle-core = "0.6"
+candle-nn = "0.6"
+candle-transformers = "0.6"
+memmap2 = "0.9"
+tokenizers = "0.19"
