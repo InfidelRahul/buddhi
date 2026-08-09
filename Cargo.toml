@@ -8,6 +8,7 @@ members = [
     "crates/dhi-heuristics",
     "crates/dhi-brain",
     "crates/dhi-token",
+    "crates/dhi-llm",
 ]
 
 [workspace.package]
@@ -29,3 +30,5 @@ directories = "5.0"
 uuid = { version = "1.8", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 regex = "1.10"
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+async-trait = "0.1"
