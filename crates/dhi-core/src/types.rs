@@ -64,3 +64,9 @@ pub enum EventType {
     PatchApplied,
     ErrorOccurred,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolCall {
+    pub name: String,
+    pub arguments: serde_json::Value,
+}
