@@ -1,6 +1,8 @@
 use async_trait::async_trait;
 use dhi_core::error::Result;
+use futures_util::Stream;
 use serde::{Deserialize, Serialize};
+use std::pin::Pin;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatMessage {
@@ -24,4 +26,10 @@ pub struct TokenUsage {
 #[async_trait]
 pub trait LlmProvider: Send + Sync {
     async fn chat(&self, messages: Vec<ChatMessage>) -> Result<LlmResponse>;
+
+    // Returns a stream of string chunks
+    async fn chat_stream(
+        &self,
+        messages: Vec<ChatMessage>,
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<String>> + Send>>>;
 }
