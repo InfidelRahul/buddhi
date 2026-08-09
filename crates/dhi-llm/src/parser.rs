@@ -63,3 +63,9 @@ impl StreamInterceptor {
         Ok(None)
     }
 }
+
+impl Default for StreamInterceptor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
