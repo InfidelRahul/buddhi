@@ -3,6 +3,7 @@ use dhi_core::error::{DhiError, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MemoryEntry {
@@ -33,7 +34,7 @@ impl MemoryStore {
 
     pub fn add_lesson(&mut self, context: String, lesson: String) -> Result<()> {
         let entry = MemoryEntry {
-            id: uuid::Uuid::new_v4().to_string(),
+            id: Uuid::new_v4().to_string(),
             context,
             lesson,
             created_at: Utc::now(),
@@ -50,11 +51,11 @@ impl MemoryStore {
 
     fn save(&self) -> Result<()> {
         if let Some(parent) = self.path.parent() {
-            fs::create_dir_all(parent).map_err(|e| DhiError::Io(e))?;
+            fs::create_dir_all(parent).map_err(DhiError::Io)?;
         }
         let content =
-            serde_json::to_string_pretty(&self.entries).map_err(|e| DhiError::Serialization(e))?;
-        fs::write(&self.path, content).map_err(|e| DhiError::Io(e))?;
+            serde_json::to_string_pretty(&self.entries).map_err(DhiError::Serialization)?;
+        fs::write(&self.path, content).map_err(DhiError::Io)?;
         Ok(())
     }
 }
