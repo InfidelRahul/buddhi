@@ -1,6 +1,6 @@
 use crate::prompt::LocalBrainPromptBuilder;
 use crate::types::{OptimizedIntent, RoutingDecision};
-use dhi_core::error::{DhiError, Result};
+use dhi_core::error::Result;
 use dhi_heuristics::types::HeuristicHints;
 use std::time::Duration;
 use tokio::time::timeout;
