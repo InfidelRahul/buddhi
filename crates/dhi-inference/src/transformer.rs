@@ -135,7 +135,7 @@ impl TransformerBlock {
             .matmul(&full_k.transpose(2, 3)?)?
             .affine(1.0 / scale, 0.0)?;
         let attn_weights = candle_nn::ops::softmax(&attn_weights, D::Minus1)?;
-        let attn_out = attn_weights.matmul(&full_v)?;
+        let attn_out = attn_weights.matmul(full_v)?;
 
         let attn_out = attn_out
             .transpose(1, 2)?
