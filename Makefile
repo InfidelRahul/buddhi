@@ -1,4 +1,4 @@
-.PHONY: all build test lint fmt clean bench
+.PHONY: all build test lint fmt clean bench release
 
 all: build
 
@@ -16,6 +16,9 @@ fmt:
 
 bench:
 	cargo bench --workspace
+
+release:
+	cargo build --release --locked
 
 clean:
 	cargo clean

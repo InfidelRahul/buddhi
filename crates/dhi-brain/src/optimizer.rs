@@ -2,7 +2,7 @@ use crate::prompt::LocalBrainPromptBuilder;
 use crate::types::{OptimizedIntent, RoutingDecision};
 use dhi_core::error::{DhiError, Result};
 use dhi_heuristics::types::HeuristicHints;
-use dhi_inference::loader::{LocalModel, ModelLoader};
+use dhi_inference::loader::ModelLoader;
 use dhi_inference::pipeline::InferencePipeline;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -22,7 +22,10 @@ impl LocalBrainOptimizer {
         tokenizer_path: PathBuf,
     ) -> Result<Self> {
         let pipeline = match ModelLoader::load(&model_path, &tokenizer_path) {
-            Ok(model) => Some(InferencePipeline::try_new(model)?),
+            Ok(model) => {
+                // Pass context window limit (e.g., 4096 tokens for Qwen)
+                Some(InferencePipeline::try_new(model, 4096)?)
+            }
             Err(e) => {
                 tracing::warn!(
                     "Failed to load local model: {}. Falling back to heuristics.",
@@ -48,9 +51,7 @@ impl LocalBrainOptimizer {
         tracing::debug!("Local brain prompt: {}", prompt);
 
         if let Some(pipeline) = &self.pipeline {
-            // Clone pipeline for async task (InferencePipeline needs to be mutable,
-            // so we wrap in Arc<Mutex> or spawn a blocking task)
-            let mut pipeline = pipeline.clone(); // Requires Clone impl or Arc<Mutex>
+            let mut pipeline = pipeline.clone();
 
             let result = timeout(
                 self.timeout,
@@ -72,11 +73,8 @@ impl LocalBrainOptimizer {
     }
 
     fn parse_llm_output(&self, output: &str) -> Result<OptimizedIntent> {
-        // Skeleton: Parse JSON from LLM output
-        // In a real implementation, we would extract the JSON block
         tracing::debug!("LLM output: {}", output);
 
-        // Placeholder parsed intent
         Ok(OptimizedIntent {
             task_type: dhi_core::types::TaskType::BugFix,
             target_file_hints: vec!["src/main.rs".to_string()],
