@@ -51,6 +51,6 @@ impl RotaryEmbedding {
         let rotated = Tensor::cat(&[&x2.neg()?, &x1], 3)?;
 
         // Apply RoPE: x * cos + rotate_half(x) * sin
-        (x.broadcast_mul(&cos)? + rotated.broadcast_mul(&sin)?)
+        x.broadcast_mul(&cos)? + rotated.broadcast_mul(&sin)?
     }
 }

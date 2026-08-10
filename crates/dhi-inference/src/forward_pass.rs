@@ -2,7 +2,7 @@ use crate::kv_cache::KvCache;
 use crate::transformer::TransformerBlock;
 use crate::weights::ModelWeights;
 use candle_core::{DType, Device, Tensor};
-use candle_nn::VarBuilder;
+use candle_nn::{Module, VarBuilder};
 use dhi_core::error::{DhiError, Result};
 
 pub struct ForwardPass {
@@ -18,10 +18,11 @@ impl ForwardPass {
         let device = Device::Cpu;
         let hidden_size = 1024; // Qwen 0.5B hidden size
         let num_layers = 4; // Skeleton layer count
+        let num_heads = 16; // Qwen 0.5B num_heads
         let vocab_size = 32000;
 
-        // Create VarBuilder from loaded tensors
-        let vb = VarBuilder::from_tensors(&weights.tensors, DType::F32, &device);
+        // Create VarBuilder from loaded tensors (candle 0.8 takes ownership of HashMap)
+        let vb = VarBuilder::from_tensors(weights.tensors.clone(), DType::F32, &device);
 
         let embed_tokens =
             candle_nn::embedding(vocab_size, hidden_size, vb.pp("model.embed_tokens"))
@@ -35,7 +36,7 @@ impl ForwardPass {
 
         let mut blocks = Vec::with_capacity(num_layers);
         for i in 0..num_layers {
-            let block = TransformerBlock::load(&vb, i, hidden_size)
+            let block = TransformerBlock::load(&vb, i, hidden_size, num_heads)
                 .map_err(|e| DhiError::Config(format!("Failed to load block {}: {}", i, e)))?;
             blocks.push(block);
         }
