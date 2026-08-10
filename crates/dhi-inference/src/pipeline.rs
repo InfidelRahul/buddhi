@@ -1,3 +1,4 @@
+use crate::context::ContextManager;
 use crate::forward_pass::ForwardPass;
 use crate::kv_cache::KvCache;
 use crate::loader::LocalModel;
@@ -11,10 +12,11 @@ pub struct InferencePipeline {
     cache: KvCache,
     sampler: Sampler,
     device: Device,
+    context_manager: ContextManager,
 }
 
 impl InferencePipeline {
-    pub fn try_new(model: LocalModel) -> Result<Self> {
+    pub fn try_new(model: LocalModel, max_context_tokens: usize) -> Result<Self> {
         let device = Device::Cpu;
         let forward_pass = ForwardPass::new(&model.weights)?;
 
@@ -24,6 +26,7 @@ impl InferencePipeline {
 
         // Default to Greedy with temperature 1.0 for stable skeleton testing
         let sampler = Sampler::new(SamplingStrategy::Greedy, 1.0);
+        let context_manager = ContextManager::new(max_context_tokens);
 
         Ok(Self {
             model,
@@ -31,6 +34,7 @@ impl InferencePipeline {
             cache,
             sampler,
             device,
+            context_manager,
         })
     }
 
@@ -43,7 +47,13 @@ impl InferencePipeline {
     where
         F: FnMut(&str),
     {
-        let mut input_ids = self.model.tokenizer.encode(prompt)?;
+        // Add prompt to context manager
+        self.context_manager.add_message(prompt)?;
+
+        // Get full context for generation
+        let full_context = self.context_manager.get_context();
+
+        let mut input_ids = self.model.tokenizer.encode(&full_context)?;
         let mut generated_text = String::new();
 
         for _ in 0..max_tokens {
@@ -71,6 +81,9 @@ impl InferencePipeline {
                 break;
             }
         }
+
+        // Add generated response to context for multi-turn support
+        self.context_manager.add_message(&generated_text)?;
 
         Ok(generated_text)
     }

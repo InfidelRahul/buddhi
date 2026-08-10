@@ -1,3 +1,4 @@
+pub mod context;
 pub mod forward_pass;
 pub mod kv_cache;
 pub mod loader;
