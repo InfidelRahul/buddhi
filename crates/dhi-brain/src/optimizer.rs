@@ -1,17 +1,18 @@
 use crate::prompt::LocalBrainPromptBuilder;
 use crate::types::{OptimizedIntent, RoutingDecision};
-use dhi_core::error::{DhiError, Result};
+use dhi_core::error::Result;
 use dhi_heuristics::types::HeuristicHints;
 use dhi_inference::loader::ModelLoader;
 use dhi_inference::pipeline::InferencePipeline;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::time::timeout;
 
 pub struct LocalBrainOptimizer {
     pub timeout: Duration,
     pub max_output_tokens: usize,
-    pipeline: Option<InferencePipeline>,
+    pipeline: Option<Arc<Mutex<InferencePipeline>>>,
 }
 
 impl LocalBrainOptimizer {
@@ -22,10 +23,9 @@ impl LocalBrainOptimizer {
         tokenizer_path: PathBuf,
     ) -> Result<Self> {
         let pipeline = match ModelLoader::load(&model_path, &tokenizer_path) {
-            Ok(model) => {
-                // Pass context window limit (e.g., 4096 tokens for Qwen)
-                Some(InferencePipeline::try_new(model, 4096)?)
-            }
+            Ok(model) => Some(Arc::new(Mutex::new(InferencePipeline::try_new(
+                model, 4096,
+            )?))),
             Err(e) => {
                 tracing::warn!(
                     "Failed to load local model: {}. Falling back to heuristics.",
@@ -51,11 +51,15 @@ impl LocalBrainOptimizer {
         tracing::debug!("Local brain prompt: {}", prompt);
 
         if let Some(pipeline) = &self.pipeline {
-            let mut pipeline = pipeline.clone();
+            let pipeline = Arc::clone(pipeline);
+            let prompt_owned = prompt.clone();
 
             let result = timeout(
                 self.timeout,
-                tokio::task::spawn_blocking(move || pipeline.generate(&prompt, 120)),
+                tokio::task::spawn_blocking(move || {
+                    let mut p = pipeline.lock().expect("Pipeline mutex poisoned");
+                    p.generate(&prompt_owned, 120)
+                }),
             )
             .await;
 
