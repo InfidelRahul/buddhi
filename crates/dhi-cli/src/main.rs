@@ -4,6 +4,7 @@ use dhi_brain::optimizer::LocalBrainOptimizer;
 use dhi_config::loader::load_config;
 use dhi_core::session::Session;
 use dhi_heuristics::parser::HeuristicParser;
+use std::io::{self, Write};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -33,9 +34,8 @@ async fn main() -> anyhow::Result<()> {
         // 1. Initialize components
         let heuristic_parser = HeuristicParser::try_new()?;
 
-        // Initialize local brain with actual model paths
         let model_path = PathBuf::from(&config.local_brain.model_path);
-        let tokenizer_path = PathBuf::from("tokenizer.json"); // Placeholder path
+        let tokenizer_path = PathBuf::from("tokenizer.json");
 
         let brain_optimizer = LocalBrainOptimizer::try_new(
             config.local_brain.timeout_ms,
@@ -49,11 +49,9 @@ async fn main() -> anyhow::Result<()> {
 
         // 3. Start task
         let task_id = session.start_task(task_input.clone())?;
-        tracing::debug!("Task started with ID: {}", task_id);
 
         // 4. Run heuristics
         let hints = heuristic_parser.parse(&task_input);
-        tracing::debug!("Heuristic hints: {:?}", hints);
 
         // 5. Run local brain optimization
         let intent = brain_optimizer.optimize(&task_input, &hints).await?;
@@ -64,10 +62,20 @@ async fn main() -> anyhow::Result<()> {
             IntentContractBuilder::build(task_id, &intent, config.budget.max_tokens_per_turn);
         session.set_contract(contract.clone());
 
-        tracing::info!("Task contract built. Ready for execution.");
+        // 7. Stream output simulation (Phase 24 UX)
+        println!("\n--- DHI Local Brain Output ---");
+        let stdout = io::stdout();
+        let mut lock = stdout.lock();
 
-        // In Phase 24, we will stream the actual code generation here.
-        println!("DHI local brain processed the task successfully.");
+        // In a real implementation, this would call pipeline.generate_stream
+        // For now, we simulate streaming the cloud_instruction_hint
+        let output = &intent.cloud_instruction_hint;
+        for word in output.split_whitespace() {
+            write!(lock, "{} ", word)?;
+            lock.flush()?;
+            std::thread::sleep(std::time::Duration::from_millis(50)); // Simulate latency
+        }
+        println!("\n------------------------------\n");
     } else {
         tracing::warn!("No task provided. Use --task to specify a task.");
     }

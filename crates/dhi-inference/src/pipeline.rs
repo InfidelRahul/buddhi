@@ -34,14 +34,21 @@ impl InferencePipeline {
         })
     }
 
-    pub fn generate(&mut self, prompt: &str, max_tokens: usize) -> Result<String> {
+    pub fn generate_stream<F>(
+        &mut self,
+        prompt: &str,
+        max_tokens: usize,
+        mut on_token: F,
+    ) -> Result<String>
+    where
+        F: FnMut(&str),
+    {
         let mut input_ids = self.model.tokenizer.encode(prompt)?;
         let mut generated_text = String::new();
 
         for _ in 0..max_tokens {
             let logits_vec = self.forward_pass.run(&input_ids, &mut self.cache)?;
 
-            // Convert logits back to Tensor for the Sampler
             let vocab_size = logits_vec.len();
             let logits_tensor = Tensor::from_vec(logits_vec, &[1, vocab_size], &self.device)
                 .map_err(|e| DhiError::Config(format!("Failed to create logits tensor: {}", e)))?;
@@ -54,14 +61,21 @@ impl InferencePipeline {
             input_ids.push(next_token);
 
             let decoded = self.model.tokenizer.decode(&[next_token])?;
+
+            // Stream the token to the callback
+            on_token(&decoded);
             generated_text.push_str(&decoded);
 
-            // Simple EOS condition (token 0 is often EOS or padding in skeletons)
+            // Simple EOS condition
             if next_token == 0 {
                 break;
             }
         }
 
         Ok(generated_text)
+    }
+
+    pub fn generate(&mut self, prompt: &str, max_tokens: usize) -> Result<String> {
+        self.generate_stream(prompt, max_tokens, |_| {})
     }
 }
