@@ -1,6 +1,7 @@
 use crate::kv_cache::KvCache;
 use crate::rope::RotaryEmbedding;
 use candle_core::{Result as CandleResult, Tensor, D};
+use candle_nn::Module;
 use candle_nn::{Linear, RmsNorm, VarBuilder};
 
 pub struct TransformerBlock {

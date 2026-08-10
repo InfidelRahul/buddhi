@@ -25,7 +25,7 @@ impl ModelLoader {
             )));
         }
 
-        let weights = ModelWeights::load(model_path)?;
+        let weights = ModelWeights::load(model_path, &candle_core::Device::Cpu)?;
         let tokenizer = LocalTokenizer::load(tokenizer_path)?;
 
         Ok(LocalModel { weights, tokenizer })

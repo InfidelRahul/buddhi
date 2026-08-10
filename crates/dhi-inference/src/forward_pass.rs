@@ -82,7 +82,11 @@ impl ForwardPass {
             .map_err(|e| DhiError::Config(format!("LM head failed: {}", e)))?;
 
         // Extract logits for the last token
-        let last_logits = logits.get(0)?.get(seq_len - 1)?;
+        let last_logits = logits
+            .get(0)
+            .map_err(|e| DhiError::Config(format!("Batch extraction failed: {}", e)))?
+            .get(seq_len - 1)
+            .map_err(|e| DhiError::Config(format!("Seq extraction failed: {}", e)))?;
         let logits_vec: Vec<f32> = last_logits
             .to_vec1()
             .map_err(|e| DhiError::Config(format!("Failed to convert logits: {}", e)))?;
