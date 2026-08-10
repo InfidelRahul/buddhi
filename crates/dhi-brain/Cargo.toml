@@ -7,6 +7,7 @@ license.workspace = true
 [dependencies]
 dhi-core = { path = "../dhi-core" }
 dhi-heuristics = { path = "../dhi-heuristics" }
+dhi-inference = { path = "../dhi-inference" }
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true
