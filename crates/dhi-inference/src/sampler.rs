@@ -1,65 +1,96 @@
-use candle_core::{Result, Tensor};
-use rand::seq::SliceRandom;
+use candle_core::{Tensor, D};
+use rand::distributions::{Distribution, WeightedIndex};
+use rand::thread_rng;
 
 pub enum SamplingStrategy {
     Greedy,
     TopK(usize),
-    TopP(f64),
+    TopP(f32),
 }
 
 pub struct Sampler {
     strategy: SamplingStrategy,
+    temperature: f64,
 }
 
 impl Sampler {
-    pub fn new(strategy: SamplingStrategy) -> Self {
-        Self { strategy }
+    pub fn new(strategy: SamplingStrategy, temperature: f64) -> Self {
+        Self {
+            strategy,
+            temperature,
+        }
     }
 
-    pub fn sample(&self, logits: &Tensor) -> Result<u32> {
-        let logits_vec: Vec<f32> = logits.flatten_all()?.to_vec1()?;
+    pub fn sample(&self, logits: &Tensor) -> candle_core::Result<u32> {
+        // 1. Apply Temperature
+        let scaled_logits = if self.temperature != 1.0 {
+            logits.affine(1.0 / self.temperature, 0.0)?
+        } else {
+            logits.clone()
+        };
 
+        // 2. Softmax to get probabilities
+        let probs = candle_nn::ops::softmax(&scaled_logits, D::Minus1)?;
+        let mut probs_vec: Vec<f32> = probs.flatten_all()?.to_vec1()?;
+
+        // 3. Apply Sampling Strategy
         match self.strategy {
             SamplingStrategy::Greedy => {
-                // Find argmax
-                let mut max_idx = 0;
-                let mut max_val = f32::MIN;
-                for (i, &val) in logits_vec.iter().enumerate() {
-                    if val > max_val {
-                        max_val = val;
-                        max_idx = i;
-                    }
-                }
-                Ok(max_idx as u32)
+                let max_idx = probs_vec
+                    .iter()
+                    .enumerate()
+                    .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+                    .map(|(i, _)| i)
+                    .unwrap_or(0);
+                return Ok(max_idx as u32);
             }
             SamplingStrategy::TopK(k) => {
-                // Simplified Top-K: sort indices by logit value
-                let mut indices: Vec<usize> = (0..logits_vec.len()).collect();
+                // Zero out all but the top K probabilities
+                let mut indices: Vec<usize> = (0..probs_vec.len()).collect();
                 indices.sort_by(|&a, &b| {
-                    logits_vec[b]
-                        .partial_cmp(&logits_vec[a])
+                    probs_vec[b]
+                        .partial_cmp(&probs_vec[a])
                         .unwrap_or(std::cmp::Ordering::Equal)
                 });
-                let top_k: Vec<usize> = indices.into_iter().take(k).collect();
-
-                // Simple uniform sampling from top-k for skeleton
-                let mut rng = rand::thread_rng();
-                let chosen = top_k.choose(&mut rng).unwrap_or(&0);
-                Ok(*chosen as u32)
+                for &i in indices.iter().skip(k) {
+                    probs_vec[i] = 0.0;
+                }
             }
-            SamplingStrategy::TopP(_p) => {
-                // Placeholder for Top-P (nucleus) sampling
-                // For skeleton, fall back to greedy
-                let mut max_idx = 0;
-                let mut max_val = f32::MIN;
-                for (i, &val) in logits_vec.iter().enumerate() {
-                    if val > max_val {
-                        max_val = val;
-                        max_idx = i;
+            SamplingStrategy::TopP(p) => {
+                // Nucleus sampling: keep smallest set of tokens whose cumulative prob >= p
+                let mut indices: Vec<usize> = (0..probs_vec.len()).collect();
+                indices.sort_by(|&a, &b| {
+                    probs_vec[b]
+                        .partial_cmp(&probs_vec[a])
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                });
+
+                let mut cum_prob = 0.0;
+                for &i in &indices {
+                    cum_prob += probs_vec[i];
+                    if cum_prob >= p {
+                        break;
                     }
                 }
-                Ok(max_idx as u32)
+                // Zero out tokens outside the nucleus
+                let mut keep = false;
+                let mut cum_check = 0.0;
+                for &i in &indices {
+                    if keep {
+                        probs_vec[i] = 0.0;
+                    }
+                    cum_check += probs_vec[i];
+                    if cum_check >= p {
+                        keep = true;
+                    }
+                }
             }
         }
+
+        // 4. Multinomial Sampling using rand
+        let dist = WeightedIndex::new(&probs_vec)
+            .map_err(|e| candle_core::Error::Msg(format!("WeightedIndex error: {}", e)))?;
+        let mut rng = thread_rng();
+        Ok(dist.sample(&mut rng) as u32)
     }
 }

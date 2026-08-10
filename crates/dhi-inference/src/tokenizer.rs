@@ -20,4 +20,10 @@ impl LocalTokenizer {
             .map_err(|e| DhiError::Config(format!("Tokenization failed: {}", e)))?;
         Ok(encoding.get_ids().to_vec())
     }
+
+    pub fn decode(&self, tokens: &[u32]) -> Result<String> {
+        self.tokenizer
+            .decode(tokens, true)
+            .map_err(|e| DhiError::Config(format!("Decoding failed: {}", e)))
+    }
 }
