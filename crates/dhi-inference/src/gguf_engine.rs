@@ -6,6 +6,7 @@ use llama_cpp_2::llama_batch::LlamaBatch;
 use llama_cpp_2::model::params::LlamaModelParams;
 use llama_cpp_2::model::AddBos;
 use llama_cpp_2::model::LlamaModel;
+use llama_cpp_2::sampling::LlamaSampler;
 use std::num::NonZeroU32;
 use std::path::Path;
 
@@ -24,11 +25,11 @@ impl GgufEngine {
             )));
         }
 
-        // Initialize backend globally for this engine instance
-        let backend = LlamaBackend::init_num_threads(None, None);
+        // Latest API: init() returns a Result<LlamaBackend>
+        let backend = LlamaBackend::init()
+            .map_err(|e| DhiError::Config(format!("Backend init failed: {}", e)))?;
         let params = LlamaModelParams::default();
 
-        // Latest API requires &backend as first argument
         let model = LlamaModel::load_from_file(&backend, model_path, &params)
             .map_err(|e| DhiError::Config(format!("Failed to load GGUF model: {}", e)))?;
 
@@ -46,8 +47,6 @@ impl InferenceEngine for GgufEngine {
     }
 
     fn generate(&mut self, prompt: &str, max_tokens: usize) -> Result<String> {
-        // BYPASS LIFETIME ISSUE: Create context dynamically per generation run.
-        // This avoids needing self-referential struct crates like `ouroboros`.
         let ctx_params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(self.n_ctx));
         let mut ctx = self
             .model
@@ -59,10 +58,8 @@ impl InferenceEngine for GgufEngine {
             .str_to_token(prompt, AddBos::Always)
             .map_err(|e| DhiError::Config(format!("Tokenization failed: {}", e)))?;
 
-        // Latest API: LlamaBatch::new takes usize and returns Self directly (no Result)
         let mut batch = LlamaBatch::new(tokens.len() + max_tokens, 1);
 
-        let last_index = tokens.len() as i32 - 1;
         for (i, token) in tokens.iter().enumerate() {
             let is_last = i == tokens.len() - 1;
             batch
@@ -75,30 +72,36 @@ impl InferenceEngine for GgufEngine {
 
         let mut generated = String::new();
 
-        for i in 0..max_tokens {
-            let token = ctx
-                .sample_token_greedy()
-                .map_err(|e| DhiError::Config(format!("Sampling failed: {}", e)))?;
+        // Latest API: Sampling uses a chain-based LlamaSampler
+        let mut sampler = LlamaSampler::chain_simple([LlamaSampler::greedy()]);
+        let mut n_cur = tokens.len() as i32;
+
+        for _ in 0..max_tokens {
+            let token = sampler.sample(&ctx, batch.n_tokens() - 1);
+            sampler.accept(token);
 
             if self.model.is_eog_token(token) {
                 break;
             }
 
-            // Latest API: token_to_str requires Special enum argument
+            // Latest API: token_to_str requires Special enum variant (Plaintext instead of Normal)
             #[allow(deprecated)]
             let piece = self
                 .model
-                .token_to_str(token, llama_cpp_2::model::Special::Normal)
+                .token_to_str(token, llama_cpp_2::model::Special::Plaintext)
                 .map_err(|e| DhiError::Config(format!("Detokenization failed: {}", e)))?;
             generated.push_str(&piece);
 
             let mut next_batch = LlamaBatch::new(1, 1);
             next_batch
-                .add(token, last_index + 1 + i as i32, &[0], true)
+                .add(token, n_cur, &[0], true)
                 .map_err(|e| DhiError::Config(format!("Next batch add failed: {}", e)))?;
 
             ctx.decode(&mut next_batch)
                 .map_err(|e| DhiError::Config(format!("Next decode failed: {}", e)))?;
+
+            batch = next_batch;
+            n_cur += 1;
         }
 
         Ok(generated)
