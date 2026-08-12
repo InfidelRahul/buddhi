@@ -6,15 +6,11 @@ license.workspace = true
 
 [dependencies]
 dhi-core = { path = "../dhi-core" }
-dhi-config = { path = "../dhi-config" }
-dhi-brain = { path = "../dhi-brain" }
-dhi-token = { path = "../dhi-token" }
 dhi-llm = { path = "../dhi-llm" }
 dhi-tools = { path = "../dhi-tools" }
-dhi-context = { path = "../dhi-context" }
-dhi-rules = { path = "../dhi-rules" }
-dhi-memory = { path = "../dhi-memory" }
+dhi-verify = { path = "../dhi-verify" }
 anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 tokio.workspace = true
 tracing.workspace = true
-futures-util.workspace = true

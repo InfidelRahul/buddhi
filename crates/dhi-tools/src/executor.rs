@@ -1,29 +1,53 @@
-use crate::registry::ToolRegistry;
-use crate::types::ToolResult;
 use dhi_core::error::{DhiError, Result};
-use dhi_core::types::ToolCall;
+use dhi_security::PathGuard;
+use serde_json::Value;
+use std::fs;
 use std::path::PathBuf;
 
+pub struct ToolCall {
+    pub id: String,
+    pub name: String,
+    pub arguments: Value,
+}
+
 pub struct ToolExecutor {
-    registry: ToolRegistry,
-    project_root: PathBuf,
+    root: PathBuf,
 }
 
 impl ToolExecutor {
-    pub fn new(registry: ToolRegistry, project_root: PathBuf) -> Self {
-        Self {
-            registry,
-            project_root,
-        }
+    pub fn new(root: PathBuf) -> Self {
+        Self { root }
     }
 
-    pub async fn execute(&self, call: &ToolCall) -> Result<ToolResult> {
-        let tool = self
-            .registry
-            .get(&call.name)
-            .ok_or_else(|| DhiError::ToolExecution(format!("Tool not found: {}", call.name)))?;
+    pub fn execute(&self, tool_call: &ToolCall) -> Result<String> {
+        match tool_call.name.as_str() {
+            "read_file" => {
+                let path = tool_call.arguments["path"]
+                    .as_str()
+                    .ok_or_else(|| DhiError::Config("Missing 'path' argument".to_string()))?;
+                let safe_path = PathGuard::validate(path, &self.root)?;
+                let content = fs::read_to_string(&safe_path).map_err(DhiError::Io)?;
+                Ok(content)
+            }
+            "write_file" => {
+                let path = tool_call.arguments["path"]
+                    .as_str()
+                    .ok_or_else(|| DhiError::Config("Missing 'path' argument".to_string()))?;
+                let content = tool_call.arguments["content"]
+                    .as_str()
+                    .ok_or_else(|| DhiError::Config("Missing 'content' argument".to_string()))?;
+                let safe_path = PathGuard::validate(path, &self.root)?;
 
-        tool.execute(call.arguments.clone(), &self.project_root)
-            .await
+                if let Some(parent) = safe_path.parent() {
+                    fs::create_dir_all(parent).map_err(DhiError::Io)?;
+                }
+                fs::write(&safe_path, content).map_err(DhiError::Io)?;
+                Ok("File written successfully.".to_string())
+            }
+            _ => Err(DhiError::Config(format!(
+                "Unknown tool: {}",
+                tool_call.name
+            ))),
+        }
     }
 }

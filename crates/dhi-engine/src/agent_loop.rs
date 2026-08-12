@@ -20,7 +20,7 @@ impl AgentLoop {
     pub async fn run(&self, task: &str) -> Result<()> {
         let executor = ToolExecutor::new(self.project_root.clone());
         let verifier = VerifyRunner::new(self.project_root.clone());
-        
+
         let mut context = vec![
             json!({"role": "system", "content": "You are an autonomous coding agent. Use tools to write code."}),
             json!({"role": "user", "content": task}),
@@ -28,25 +28,26 @@ impl AgentLoop {
 
         for attempt in 0..=self.max_retries {
             tracing::info!("Agent loop attempt {}", attempt);
-            
+
             // 1. Simulate Cloud LLM response (In a real implementation, call dhi-llm)
             let tool_call = self.mock_llm_call(attempt, task);
 
             if let Some(call) = tool_call {
                 tracing::info!("Executing tool: {}", call.name);
                 let result = executor.execute(&call);
-                
+
                 let result_str = match result {
                     Ok(out) => out,
                     Err(e) => format!("Tool execution failed: {}", e),
                 };
-                
-                context.push(json!({"role": "tool", "tool_call_id": call.id, "content": result_str}));
+
+                context
+                    .push(json!({"role": "tool", "tool_call_id": call.id, "content": result_str}));
 
                 // 2. Verify if tool modified the filesystem
                 if call.name == "write_file" {
                     let verification = verifier.run_cargo_check()?;
-                    
+
                     if verification.is_success() {
                         tracing::info!("Verification passed! Task complete.");
                         return Ok(());
@@ -66,7 +67,9 @@ impl AgentLoop {
             }
         }
 
-        Err(DhiError::Config("Max retries exceeded. Task failed.".to_string()))
+        Err(DhiError::Config(
+            "Max retries exceeded. Task failed.".to_string(),
+        ))
     }
 
     // Mock LLM for skeleton testing
