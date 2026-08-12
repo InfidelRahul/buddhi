@@ -1,7 +1,7 @@
 use dhi_core::error::{DhiError, Result};
 use dhi_tools::executor::{ToolCall, ToolExecutor};
 use dhi_verify::runner::VerifyRunner;
-use serde_json::{json, Value};
+use serde_json::json;
 use std::path::PathBuf;
 
 pub struct AgentLoop {
