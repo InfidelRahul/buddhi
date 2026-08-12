@@ -46,18 +46,15 @@ impl InferenceEngine for GgufEngine {
     }
 
     fn generate(&mut self, prompt: &str, max_tokens: usize) -> Result<String> {
-        self.generate_stream(prompt, max_tokens, |_| {})
+        self.generate_stream(prompt, max_tokens, &mut |_| {})
     }
 
-    fn generate_stream<F>(
+    fn generate_stream(
         &mut self,
         prompt: &str,
         max_tokens: usize,
-        mut on_token: F,
-    ) -> Result<String>
-    where
-        F: FnMut(&str),
-    {
+        on_token: &mut (dyn FnMut(&str) + Send),
+    ) -> Result<String> {
         let ctx_params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(self.n_ctx));
         let mut ctx = self
             .model

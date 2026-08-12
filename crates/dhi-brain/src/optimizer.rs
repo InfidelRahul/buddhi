@@ -68,7 +68,7 @@ impl LocalBrainOptimizer {
                 self.timeout,
                 tokio::task::spawn_blocking(move || {
                     let mut p = pipeline.lock().expect("Pipeline mutex poisoned");
-                    p.generate_stream(&prompt_owned, 120, on_token)
+                    p.generate_stream(&prompt_owned, 120, &mut on_token)
                 }),
             )
             .await;

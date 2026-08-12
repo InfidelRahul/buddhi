@@ -42,18 +42,15 @@ impl InferenceEngine for SafetensorsEngine {
     }
 
     fn generate(&mut self, prompt: &str, max_tokens: usize) -> Result<String> {
-        self.generate_stream(prompt, max_tokens, |_| {})
+        self.generate_stream(prompt, max_tokens, &mut |_| {})
     }
 
-    fn generate_stream<F>(
+    fn generate_stream(
         &mut self,
         prompt: &str,
         _max_tokens: usize,
-        mut on_token: F,
-    ) -> Result<String>
-    where
-        F: FnMut(&str),
-    {
+        on_token: &mut (dyn FnMut(&str) + Send),
+    ) -> Result<String> {
         let dummy_output = format!(
             "[Safetensors] Processed: {}",
             prompt.chars().take(20).collect::<String>()
