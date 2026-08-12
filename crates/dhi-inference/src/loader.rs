@@ -1,33 +1,34 @@
-use crate::tokenizer::LocalTokenizer;
-use crate::weights::ModelWeights;
+use crate::engine::InferenceEngine;
+use crate::gguf_engine::GgufEngine;
+use crate::safetensors_engine::SafetensorsEngine;
 use dhi_core::error::{DhiError, Result};
 use std::path::Path;
-
-pub struct LocalModel {
-    pub weights: ModelWeights,
-    pub tokenizer: LocalTokenizer,
-}
 
 pub struct ModelLoader;
 
 impl ModelLoader {
-    pub fn load(model_path: &Path, tokenizer_path: &Path) -> Result<LocalModel> {
-        if !model_path.exists() {
-            return Err(DhiError::Config(format!(
-                "Model file not found: {}",
-                model_path.display()
-            )));
-        }
-        if !tokenizer_path.exists() {
-            return Err(DhiError::Config(format!(
-                "Tokenizer file not found: {}",
-                tokenizer_path.display()
-            )));
+    pub fn load(
+        model_path: &Path,
+        tokenizer_path: &Path,
+        n_ctx: u32,
+    ) -> Result<Box<dyn InferenceEngine>> {
+        // Route 1: GGUF (llama.cpp backend)
+        if model_path.extension().and_then(|e| e.to_str()) == Some("gguf") {
+            tracing::info!("Routing to GGUF engine (llama-cpp-2)...");
+            let engine = GgufEngine::try_new(model_path, n_ctx)?;
+            return Ok(Box::new(engine));
         }
 
-        let weights = ModelWeights::load(model_path, &candle_core::Device::Cpu)?;
-        let tokenizer = LocalTokenizer::load(tokenizer_path)?;
+        // Route 2: Safetensors Directory (candle-core backend)
+        if model_path.is_dir() {
+            tracing::info!("Routing to Safetensors engine (candle-core)...");
+            let engine = SafetensorsEngine::try_new(model_path, tokenizer_path)?;
+            return Ok(Box::new(engine));
+        }
 
-        Ok(LocalModel { weights, tokenizer })
+        Err(DhiError::Config(format!(
+            "Unsupported model format: {}. Provide a .gguf file or a directory containing .safetensors.",
+            model_path.display()
+        )))
     }
 }

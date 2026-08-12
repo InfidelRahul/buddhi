@@ -2,8 +2,8 @@ use crate::prompt::LocalBrainPromptBuilder;
 use crate::types::{OptimizedIntent, RoutingDecision};
 use dhi_core::error::Result;
 use dhi_heuristics::types::HeuristicHints;
+use dhi_inference::engine::InferenceEngine;
 use dhi_inference::loader::ModelLoader;
-use dhi_inference::pipeline::InferencePipeline;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -12,7 +12,7 @@ use tokio::time::timeout;
 pub struct LocalBrainOptimizer {
     pub timeout: Duration,
     pub max_output_tokens: usize,
-    pipeline: Option<Arc<Mutex<InferencePipeline>>>,
+    pipeline: Option<Arc<Mutex<Box<dyn InferenceEngine>>>>,
 }
 
 impl LocalBrainOptimizer {
@@ -22,10 +22,8 @@ impl LocalBrainOptimizer {
         model_path: PathBuf,
         tokenizer_path: PathBuf,
     ) -> Result<Self> {
-        let pipeline = match ModelLoader::load(&model_path, &tokenizer_path) {
-            Ok(model) => Some(Arc::new(Mutex::new(InferencePipeline::try_new(
-                model, 4096,
-            )?))),
+        let pipeline = match ModelLoader::load(&model_path, &tokenizer_path, 4096) {
+            Ok(engine) => Some(Arc::new(Mutex::new(engine))),
             Err(e) => {
                 tracing::warn!(
                     "Failed to load local model: {}. Falling back to heuristics.",

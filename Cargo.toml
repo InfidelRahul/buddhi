@@ -49,3 +49,11 @@ candle-transformers = "0.8"
 memmap2 = "0.9"
 tokenizers = "0.19"
 rand = "0.8"
+llama-cpp-2 = "0.1.93"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
