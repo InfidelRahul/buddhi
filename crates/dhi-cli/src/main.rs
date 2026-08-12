@@ -51,14 +51,13 @@ async fn main() -> anyhow::Result<()> {
             "\n{}--- DHI Local Brain Streaming ---{}",
             ANSI_CYAN, ANSI_RESET
         );
-        let stdout = io::stdout();
-        let mut lock = stdout.lock();
 
         // Pass the ANSI-colored streaming callback to the optimizer
+        // We use print! and flush() to avoid capturing StdoutLock which is !Send
         let intent = brain_optimizer
             .optimize(&task_input, &hints, move |token| {
-                write!(lock, "{}{}{}", ANSI_GREEN, token, ANSI_RESET).unwrap();
-                lock.flush().unwrap();
+                print!("{}{}{}", ANSI_GREEN, token, ANSI_RESET);
+                io::stdout().flush().unwrap();
             })
             .await?;
 
