@@ -1,5 +1,5 @@
 use dhi_core::error::{DhiError, Result};
-use dhi_security::PathGuard;
+use dhi_security::path_guard::PathGuard;
 use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
