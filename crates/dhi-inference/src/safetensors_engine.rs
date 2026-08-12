@@ -5,7 +5,9 @@ use std::path::Path;
 use tokenizers::Tokenizer;
 
 pub struct SafetensorsEngine {
+    #[allow(dead_code)]
     device: Device,
+    #[allow(dead_code)]
     tokenizer: Tokenizer,
 }
 

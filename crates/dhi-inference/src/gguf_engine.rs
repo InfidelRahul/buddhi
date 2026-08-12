@@ -74,9 +74,8 @@ impl InferenceEngine for GgufEngine {
 
         // Latest API: Sampling uses a chain-based LlamaSampler
         let mut sampler = LlamaSampler::chain_simple([LlamaSampler::greedy()]);
-        let mut n_cur = tokens.len() as i32;
 
-        for _ in 0..max_tokens {
+        for n_cur in tokens.len() as i32..tokens.len() as i32 + max_tokens as i32 {
             let token = sampler.sample(&ctx, batch.n_tokens() - 1);
             sampler.accept(token);
 
@@ -101,7 +100,6 @@ impl InferenceEngine for GgufEngine {
                 .map_err(|e| DhiError::Config(format!("Next decode failed: {}", e)))?;
 
             batch = next_batch;
-            n_cur += 1;
         }
 
         Ok(generated)
