@@ -1,3 +1,4 @@
+pub mod config;
 pub mod engine;
 pub mod gguf_engine;
 pub mod loader;

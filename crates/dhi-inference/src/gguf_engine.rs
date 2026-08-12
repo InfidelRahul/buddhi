@@ -25,7 +25,6 @@ impl GgufEngine {
             )));
         }
 
-        // Latest API: init() returns a Result<LlamaBackend>
         let backend = LlamaBackend::init()
             .map_err(|e| DhiError::Config(format!("Backend init failed: {}", e)))?;
         let params = LlamaModelParams::default();
@@ -47,6 +46,18 @@ impl InferenceEngine for GgufEngine {
     }
 
     fn generate(&mut self, prompt: &str, max_tokens: usize) -> Result<String> {
+        self.generate_stream(prompt, max_tokens, |_| {})
+    }
+
+    fn generate_stream<F>(
+        &mut self,
+        prompt: &str,
+        max_tokens: usize,
+        mut on_token: F,
+    ) -> Result<String>
+    where
+        F: FnMut(&str),
+    {
         let ctx_params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(self.n_ctx));
         let mut ctx = self
             .model
@@ -71,11 +82,10 @@ impl InferenceEngine for GgufEngine {
             .map_err(|e| DhiError::Config(format!("Prompt decode failed: {}", e)))?;
 
         let mut generated = String::new();
-
-        // Latest API: Sampling uses a chain-based LlamaSampler
         let mut sampler = LlamaSampler::chain_simple([LlamaSampler::greedy()]);
+        let mut n_cur = tokens.len() as i32;
 
-        for n_cur in tokens.len() as i32..tokens.len() as i32 + max_tokens as i32 {
+        for _ in 0..max_tokens {
             let token = sampler.sample(&ctx, batch.n_tokens() - 1);
             sampler.accept(token);
 
@@ -83,12 +93,14 @@ impl InferenceEngine for GgufEngine {
                 break;
             }
 
-            // Latest API: token_to_str requires Special enum variant (Plaintext instead of Normal)
             #[allow(deprecated)]
             let piece = self
                 .model
                 .token_to_str(token, llama_cpp_2::model::Special::Plaintext)
                 .map_err(|e| DhiError::Config(format!("Detokenization failed: {}", e)))?;
+
+            // STREAMING: Call the callback for real-time UX
+            on_token(&piece);
             generated.push_str(&piece);
 
             let mut next_batch = LlamaBatch::new(1, 1);
@@ -100,6 +112,7 @@ impl InferenceEngine for GgufEngine {
                 .map_err(|e| DhiError::Config(format!("Next decode failed: {}", e)))?;
 
             batch = next_batch;
+            n_cur += 1;
         }
 
         Ok(generated)

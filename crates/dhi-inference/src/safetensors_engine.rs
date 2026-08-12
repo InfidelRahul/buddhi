@@ -29,8 +29,6 @@ impl SafetensorsEngine {
         let tokenizer = Tokenizer::from_file(tokenizer_path)
             .map_err(|e| DhiError::Config(format!("Failed to load tokenizer: {}", e)))?;
 
-        tracing::info!("Safetensors engine initialized (Candle-core backend)");
-
         Ok(Self {
             device: Device::Cpu,
             tokenizer,
@@ -44,15 +42,23 @@ impl InferenceEngine for SafetensorsEngine {
     }
 
     fn generate(&mut self, prompt: &str, max_tokens: usize) -> Result<String> {
-        // Skeleton: Actual candle-transformers forward pass will be wired in Phase 31
-        tracing::debug!(
-            "Safetensors generating {} tokens for: {}",
-            max_tokens,
-            prompt
+        self.generate_stream(prompt, max_tokens, |_| {})
+    }
+
+    fn generate_stream<F>(
+        &mut self,
+        prompt: &str,
+        _max_tokens: usize,
+        mut on_token: F,
+    ) -> Result<String>
+    where
+        F: FnMut(&str),
+    {
+        let dummy_output = format!(
+            "[Safetensors] Processed: {}",
+            prompt.chars().take(20).collect::<String>()
         );
-        Ok(format!(
-            "[Safetensors Engine] Processed prompt: {}",
-            prompt.chars().take(50).collect::<String>()
-        ))
+        on_token(&dummy_output);
+        Ok(dummy_output)
     }
 }

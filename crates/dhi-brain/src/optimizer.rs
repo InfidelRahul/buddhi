@@ -1,5 +1,6 @@
 use crate::prompt::LocalBrainPromptBuilder;
 use crate::types::{OptimizedIntent, RoutingDecision};
+use dhi_core::context::ContextManager;
 use dhi_core::error::Result;
 use dhi_heuristics::types::HeuristicHints;
 use dhi_inference::engine::InferenceEngine;
@@ -13,6 +14,7 @@ pub struct LocalBrainOptimizer {
     pub timeout: Duration,
     pub max_output_tokens: usize,
     pipeline: Option<Arc<Mutex<Box<dyn InferenceEngine>>>>,
+    context_manager: Arc<Mutex<ContextManager>>,
 }
 
 impl LocalBrainOptimizer {
@@ -37,14 +39,24 @@ impl LocalBrainOptimizer {
             timeout: Duration::from_millis(timeout_ms),
             max_output_tokens,
             pipeline,
+            context_manager: Arc::new(Mutex::new(ContextManager::new(4096))),
         })
     }
 
-    pub async fn optimize(
+    pub async fn optimize<F>(
         &self,
         raw_input: &str,
         hints: &HeuristicHints,
-    ) -> Result<OptimizedIntent> {
+        mut on_token: F,
+    ) -> Result<OptimizedIntent>
+    where
+        F: FnMut(&str) + Send + 'static,
+    {
+        // Add to context manager
+        if let Ok(mut cm) = self.context_manager.lock() {
+            cm.add_message(raw_input).ok();
+        }
+
         let prompt = LocalBrainPromptBuilder::build(raw_input, hints);
         tracing::debug!("Local brain prompt: {}", prompt);
 
@@ -56,13 +68,16 @@ impl LocalBrainOptimizer {
                 self.timeout,
                 tokio::task::spawn_blocking(move || {
                     let mut p = pipeline.lock().expect("Pipeline mutex poisoned");
-                    p.generate(&prompt_owned, 120)
+                    p.generate_stream(&prompt_owned, 120, on_token)
                 }),
             )
             .await;
 
             match result {
                 Ok(Ok(Ok(output))) => {
+                    if let Ok(mut cm) = self.context_manager.lock() {
+                        cm.add_message(&output).ok();
+                    }
                     return self.parse_llm_output(&output);
                 }
                 Ok(Ok(Err(e))) => tracing::warn!("Local generation failed: {}", e),
@@ -75,8 +90,6 @@ impl LocalBrainOptimizer {
     }
 
     fn parse_llm_output(&self, output: &str) -> Result<OptimizedIntent> {
-        tracing::debug!("LLM output: {}", output);
-
         Ok(OptimizedIntent {
             task_type: dhi_core::types::TaskType::BugFix,
             target_file_hints: vec!["src/main.rs".to_string()],
