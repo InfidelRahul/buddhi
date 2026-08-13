@@ -10,7 +10,6 @@ pub struct SafetensorsEngine {
     #[allow(dead_code)]
     tokenizer: Tokenizer,
 }
-
 impl SafetensorsEngine {
     pub fn try_new(model_dir: &Path, tokenizer_path: &Path) -> Result<Self> {
         if !model_dir.exists() {
@@ -25,26 +24,21 @@ impl SafetensorsEngine {
                 tokenizer_path.display()
             )));
         }
-
         let tokenizer = Tokenizer::from_file(tokenizer_path)
             .map_err(|e| DhiError::Config(format!("Failed to load tokenizer: {}", e)))?;
-
         Ok(Self {
             device: Device::Cpu,
             tokenizer,
         })
     }
 }
-
 impl InferenceEngine for SafetensorsEngine {
     fn engine_type(&self) -> &'static str {
         "safetensors"
     }
-
     fn generate(&mut self, prompt: &str, max_tokens: usize) -> Result<String> {
         self.generate_stream(prompt, max_tokens, &mut |_| {})
     }
-
     fn generate_stream(
         &mut self,
         prompt: &str,

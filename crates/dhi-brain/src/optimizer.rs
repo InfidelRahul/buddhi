@@ -16,7 +16,6 @@ pub struct LocalBrainOptimizer {
     pipeline: Option<Arc<Mutex<Box<dyn InferenceEngine>>>>,
     context_manager: Arc<Mutex<ContextManager>>,
 }
-
 impl LocalBrainOptimizer {
     pub fn try_new(
         timeout_ms: u64,
@@ -34,7 +33,6 @@ impl LocalBrainOptimizer {
                 None
             }
         };
-
         Ok(Self {
             timeout: Duration::from_millis(timeout_ms),
             max_output_tokens,
@@ -52,18 +50,13 @@ impl LocalBrainOptimizer {
     where
         F: FnMut(&str) + Send + 'static,
     {
-        // Add to context manager
         if let Ok(mut cm) = self.context_manager.lock() {
             cm.add_message(raw_input).ok();
         }
-
         let prompt = LocalBrainPromptBuilder::build(raw_input, hints);
-        tracing::debug!("Local brain prompt: {}", prompt);
-
         if let Some(pipeline) = &self.pipeline {
             let pipeline = Arc::clone(pipeline);
             let prompt_owned = prompt.clone();
-
             let result = timeout(
                 self.timeout,
                 tokio::task::spawn_blocking(move || {
@@ -72,7 +65,6 @@ impl LocalBrainOptimizer {
                 }),
             )
             .await;
-
             match result {
                 Ok(Ok(Ok(output))) => {
                     if let Ok(mut cm) = self.context_manager.lock() {
@@ -85,10 +77,8 @@ impl LocalBrainOptimizer {
                 Err(_) => tracing::warn!("Local brain timed out."),
             }
         }
-
         self.fallback_to_heuristics(hints)
     }
-
     fn parse_llm_output(&self, output: &str) -> Result<OptimizedIntent> {
         Ok(OptimizedIntent {
             task_type: dhi_core::types::TaskType::BugFix,
@@ -101,13 +91,11 @@ impl LocalBrainOptimizer {
             cloud_instruction_hint: output.chars().take(100).collect(),
         })
     }
-
     fn fallback_to_heuristics(&self, hints: &HeuristicHints) -> Result<OptimizedIntent> {
         let task_type = match &hints.detected_task_type {
             Some(t) => t.clone(),
             None => dhi_core::types::TaskType::Unknown,
         };
-
         Ok(OptimizedIntent {
             task_type,
             target_file_hints: hints.detected_files.clone(),

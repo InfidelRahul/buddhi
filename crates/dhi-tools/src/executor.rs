@@ -26,8 +26,7 @@ impl ToolExecutor {
                     .as_str()
                     .ok_or_else(|| DhiError::Config("Missing 'path' argument".to_string()))?;
                 let safe_path = PathGuard::validate(path, &self.root)?;
-                let content = fs::read_to_string(&safe_path).map_err(DhiError::Io)?;
-                Ok(content)
+                fs::read_to_string(&safe_path).map_err(DhiError::Io)
             }
             "write_file" => {
                 let path = tool_call.arguments["path"]
@@ -37,7 +36,6 @@ impl ToolExecutor {
                     .as_str()
                     .ok_or_else(|| DhiError::Config("Missing 'content' argument".to_string()))?;
                 let safe_path = PathGuard::validate(path, &self.root)?;
-
                 if let Some(parent) = safe_path.parent() {
                     fs::create_dir_all(parent).map_err(DhiError::Io)?;
                 }

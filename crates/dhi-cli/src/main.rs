@@ -16,7 +16,6 @@ const ANSI_RESET: &str = "\x1b[0m";
 struct Args {
     #[arg(short, long, default_value = "config.yaml")]
     config: PathBuf,
-
     #[arg(short, long)]
     task: Option<String>,
 }
@@ -26,12 +25,10 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
     let args = Args::parse();
     let config = load_config(&args.config)?;
-
     tracing::info!("DHI Engine initialized successfully.");
 
     if let Some(task_input) = args.task {
         tracing::info!("Processing task: {}", task_input);
-
         let heuristic_parser = HeuristicParser::try_new()?;
         let model_path = PathBuf::from(&config.local_brain.model_path);
         let tokenizer_path = PathBuf::from("tokenizer.json");
@@ -52,8 +49,7 @@ async fn main() -> anyhow::Result<()> {
             ANSI_CYAN, ANSI_RESET
         );
 
-        // Pass the ANSI-colored streaming callback to the optimizer
-        // We use print! and flush() to avoid capturing StdoutLock which is !Send
+        // Use print! and flush() to avoid capturing !Send StdoutLock in closure
         let intent = brain_optimizer
             .optimize(&task_input, &hints, move |token| {
                 print!("{}{}{}", ANSI_GREEN, token, ANSI_RESET);
@@ -65,7 +61,6 @@ async fn main() -> anyhow::Result<()> {
             "\n{}-------------------------------{}\n",
             ANSI_CYAN, ANSI_RESET
         );
-
         tracing::info!("Optimized intent: {:?}", intent);
 
         let contract =
@@ -74,6 +69,5 @@ async fn main() -> anyhow::Result<()> {
     } else {
         tracing::warn!("No task provided. Use --task to specify a task.");
     }
-
     Ok(())
 }

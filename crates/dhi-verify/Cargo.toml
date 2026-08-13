@@ -3,7 +3,6 @@ name = "dhi-verify"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-
 [dependencies]
 dhi-core = { path = "../dhi-core" }
 anyhow.workspace = true

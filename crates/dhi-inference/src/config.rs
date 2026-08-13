@@ -13,11 +13,9 @@ pub struct ModelConfig {
     #[serde(default = "default_rms_norm_eps")]
     pub rms_norm_eps: f64,
 }
-
 fn default_rms_norm_eps() -> f64 {
     1e-6
 }
-
 impl ModelConfig {
     pub fn load(model_dir: &Path) -> Result<Self> {
         let config_path = model_dir.join("config.json");
@@ -27,13 +25,9 @@ impl ModelConfig {
                 model_dir.display()
             )));
         }
-
         let content = fs::read_to_string(&config_path)
             .map_err(|e| DhiError::Config(format!("Failed to read config.json: {}", e)))?;
-
-        let config: ModelConfig = serde_json::from_str(&content)
-            .map_err(|e| DhiError::Config(format!("Failed to parse config.json: {}", e)))?;
-
-        Ok(config)
+        serde_json::from_str(&content)
+            .map_err(|e| DhiError::Config(format!("Failed to parse config.json: {}", e)))
     }
 }
