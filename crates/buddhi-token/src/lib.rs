@@ -1,7 +1,7 @@
 use buddhi_core::error::{BuddhiError, Result};
 use rs_gigatoken::load_tokenizer::hf::load_hf_bpe;
 use rs_gigatoken::Tokenizer;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 pub trait TokenCounter: Send + Sync {
@@ -13,7 +13,7 @@ pub struct FastEstimator;
 impl TokenCounter for FastEstimator {
     fn count(&self, text: &str) -> usize {
         let chars = text.chars().count();
-        std::cmp::max(1, (chars + 3) / 4)
+        std::cmp::max(1, chars.div_ceil(4))
     }
 }
 
@@ -23,7 +23,7 @@ pub struct GigatokenCounter {
 }
 
 impl GigatokenCounter {
-    pub fn try_new(tokenizer_path: &PathBuf) -> Result<Self> {
+    pub fn try_new(tokenizer_path: &Path) -> Result<Self> {
         let path_str = tokenizer_path.to_str().unwrap_or("tokenizer.json");
         let tokenizer = load_hf_bpe(path_str)
             .map_err(|e| BuddhiError::Config(format!("Failed to load gigatoken: {}", e)))?;
