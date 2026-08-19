@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+buddhi-context = { path = "../buddhi-context" }
 buddhi-core = { path = "../buddhi-core" }
 buddhi-llm = { path = "../buddhi-llm" }
 buddhi-tools = { path = "../buddhi-tools" }

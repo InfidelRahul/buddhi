@@ -1,3 +1,4 @@
+use crate::context_manager::ContextManager;
 use buddhi_core::error::{BuddhiError, Result};
 use buddhi_llm::openai::OpenAiProvider;
 use buddhi_tools::executor::{ToolCall, ToolExecutor};
@@ -11,6 +12,7 @@ pub struct AgentLoop {
     project_root: PathBuf,
     max_retries: usize,
     llm_provider: Arc<Mutex<OpenAiProvider>>,
+    context_manager: Mutex<ContextManager>,
 }
 
 impl AgentLoop {
@@ -20,6 +22,7 @@ impl AgentLoop {
             project_root,
             max_retries: 3,
             llm_provider: Arc::new(Mutex::new(provider)),
+            context_manager: Mutex::new(ContextManager::new()),
         }
     }
 
@@ -27,10 +30,20 @@ impl AgentLoop {
         let executor = ToolExecutor::new(self.project_root.clone());
         let verifier = VerifyRunner::new(self.project_root.clone());
 
+        // 1. LOCAL SCOUT PHASE: Analyze project structure before talking to the cloud
+        let ctx_manager = self.context_manager.lock().await;
+        let project_summary = ctx_manager.analyze_project(&self.project_root);
+        drop(ctx_manager); // Release lock
+
+        tracing::info!("Local Scout Analysis: {}", project_summary);
+
         let mut context = vec![
             json!({
                 "role": "system",
-                "content": "You are Buddhi, an autonomous coding agent. You have access to tools: read_file, write_file. Use them to complete the task. Always verify your changes compile successfully."
+                "content": format!(
+                    "You are Buddhi, an autonomous coding agent.\n{}\nYou have access to tools: read_file, write_file. Use them to complete the task. Always verify your changes compile successfully.",
+                    project_summary
+                )
             }),
             json!({"role": "user", "content": task}),
         ];
@@ -38,10 +51,9 @@ impl AgentLoop {
         for attempt in 0..=self.max_retries {
             tracing::info!("Agent loop attempt {} of {}", attempt, self.max_retries);
 
-            // 1. Call the real Cloud LLM with streaming
+            // 2. CLOUD ARCHITECT PHASE: Call the real Cloud LLM
             let response = self.call_cloud_llm(&context).await?;
 
-            // 2. Parse the response for tool calls or final text
             match self.parse_llm_response(&response) {
                 LlmResponse::ToolCall(call) => {
                     tracing::info!("Executing tool: {}", call.name);
@@ -57,7 +69,6 @@ impl AgentLoop {
                         "content": result_str
                     }));
 
-                    // 3. Verify if tool modified the filesystem
                     if call.name == "write_file" {
                         let verification = verifier.run_cargo_check()?;
                         if verification.is_success() {
@@ -141,7 +152,6 @@ impl AgentLoop {
     }
 
     fn parse_llm_response(&self, response: &str) -> LlmResponse {
-        // Try to parse as JSON first (tool call)
         if let Ok(json_val) = serde_json::from_str::<Value>(response) {
             if let Some(tool_calls) = json_val["choices"][0]["message"]["tool_calls"].as_array() {
                 if let Some(first_call) = tool_calls.first() {
@@ -160,13 +170,10 @@ impl AgentLoop {
                     });
                 }
             }
-            // Try to extract text content
             if let Some(content) = json_val["choices"][0]["message"]["content"].as_str() {
                 return LlmResponse::Text(content.to_string());
             }
         }
-
-        // If it's not valid JSON, treat it as plain text
         LlmResponse::Text(response.to_string())
     }
 }
