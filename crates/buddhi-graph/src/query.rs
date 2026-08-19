@@ -1,7 +1,6 @@
 use crate::graph::{CodeGraph, EdgeKind};
 use petgraph::graph::NodeIndex;
-use petgraph::visit::Bfs;
-use std::collections::HashMap;
+use std::collections::{HashSet, VecDeque};
 
 /// The Graph-RAG Query Engine.
 /// Traverses the Code Knowledge Graph to answer structural questions.
@@ -14,7 +13,6 @@ impl<'a> GraphQuery<'a> {
         Self { graph }
     }
 
-    /// Find a node index by its unique ID.
     fn find_node(&self, node_id: &str) -> Option<NodeIndex> {
         self.graph.node_map.get(node_id).copied()
     }
@@ -29,13 +27,12 @@ impl<'a> GraphQuery<'a> {
             .graph
             .neighbors_directed(idx, petgraph::Direction::Incoming)
             .filter_map(|caller_idx| {
-                // Check if the edge is a "Calls" edge
-                if let Some(edge_idx) = self.graph.graph.find_edge(caller_idx, idx) {
-                    if self.graph.graph[edge_idx] == EdgeKind::Calls {
-                        return Some(self.graph.graph[caller_idx].id.clone());
-                    }
+                let edge_idx = self.graph.graph.find_edge(caller_idx, idx)?;
+                if self.graph.graph[edge_idx] == EdgeKind::Calls {
+                    Some(self.graph.graph[caller_idx].id.clone())
+                } else {
+                    None
                 }
-                None
             })
             .collect()
     }
@@ -50,47 +47,55 @@ impl<'a> GraphQuery<'a> {
             .graph
             .neighbors_directed(idx, petgraph::Direction::Outgoing)
             .filter_map(|dep_idx| {
-                if let Some(edge_idx) = self.graph.graph.find_edge(idx, dep_idx) {
-                    let kind = self.graph.graph[edge_idx].clone();
-                    let dep_id = self.graph.graph[dep_idx].id.clone();
-                    return Some((kind, dep_id));
-                }
-                None
+                let edge_idx = self.graph.graph.find_edge(idx, dep_idx)?;
+                let kind = self.graph.graph[edge_idx].clone();
+                let dep_id = self.graph.graph[dep_idx].id.clone();
+                Some((kind, dep_id))
             })
             .collect()
     }
 
-    /// Get the "impact zone" - all nodes transitively reachable from a given node.
-    /// This answers: "If I change this function, what else might break?"
+    /// Get the "impact zone" - all nodes transitively reachable within max_depth.
+    /// Uses an optimized BFS with VecDeque and HashSet for O(1) visited checks
+    /// and early termination when the depth boundary is crossed.
     pub fn get_impact_zone(&self, node_id: &str, max_depth: usize) -> Vec<String> {
         let Some(start_idx) = self.find_node(node_id) else {
             return Vec::new();
         };
 
-        let mut visited = Vec::new();
-        let mut bfs = Bfs::new(&self.graph.graph, start_idx);
-        let mut depth_map: HashMap<NodeIndex, usize> = HashMap::new();
-        depth_map.insert(start_idx, 0);
+        let mut impact_zone = Vec::new();
+        let mut visited = HashSet::new();
+        let mut queue = VecDeque::new();
 
-        while let Some(node_idx) = bfs.next(&self.graph.graph) {
-            let current_depth = depth_map.get(&node_idx).copied().unwrap_or(0);
-            if current_depth > max_depth {
-                continue;
+        visited.insert(start_idx);
+        queue.push_back((start_idx, 0));
+
+        while let Some((node_idx, depth)) = queue.pop_front() {
+            // BFS guarantees monotonic depth. If we exceed max_depth,
+            // all subsequent nodes in the queue will also exceed it.
+            if depth > max_depth {
+                break;
             }
 
             if node_idx != start_idx {
-                visited.push(self.graph.graph[node_idx].id.clone());
+                impact_zone.push(self.graph.graph[node_idx].id.clone());
             }
 
-            // Propagate depth to neighbors
+            // Prune exploration at the boundary to avoid unnecessary neighbor lookups
+            if depth == max_depth {
+                continue;
+            }
+
             for neighbor in self.graph.graph.neighbors(node_idx) {
-                if !depth_map.contains_key(&neighbor) {
-                    depth_map.insert(neighbor, current_depth + 1);
+                // HashSet::insert returns true only if the value was newly inserted,
+                // combining the "contains" check and "insert" into one O(1) operation.
+                if visited.insert(neighbor) {
+                    queue.push_back((neighbor, depth + 1));
                 }
             }
         }
 
-        visited
+        impact_zone
     }
 
     /// Find all files that contain a specific symbol name.
