@@ -171,6 +171,7 @@ impl AgentLoop {
     }
 }
 
+#[allow(dead_code)]
 enum LlmResponse {
     ToolCall(ToolCall),
     Text(String),
