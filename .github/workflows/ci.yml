@@ -17,9 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Install Python headers for pyo3 (required by gigatoken)
-      run: sudo apt-get update && sudo apt-get install -y python3-dev
       
     - name: Install Rust toolchain (Pinned Nightly)
       uses: dtolnay/rust-toolchain@master
