@@ -12,6 +12,7 @@ members = [
     "crates/buddhi-tools",
     "crates/buddhi-security",
     "crates/buddhi-context",
+    "crates/buddhi-graph",
     "crates/buddhi-verify",
     "crates/buddhi-rules",
     "crates/buddhi-memory",
@@ -25,6 +26,7 @@ edition = "2021"
 license = "MIT"
 
 [workspace.dependencies]
+petgraph = "0.8"
 tree-sitter-language-pack = "1.15"
 rs-gigatoken = "0.10.0"
 anyhow = "1.0"
