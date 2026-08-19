@@ -49,3 +49,9 @@ impl GrammarRegistry {
         self.grammars.contains_key(language)
     }
 }
+
+impl Default for GrammarRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}

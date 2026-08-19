@@ -28,3 +28,9 @@ impl ContextParser {
         }
     }
 }
+
+impl Default for ContextParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
