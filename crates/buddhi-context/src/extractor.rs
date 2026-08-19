@@ -1,66 +1,67 @@
-use tree_sitter::{Node, Parser};
+use crate::registry::GrammarRegistry;
 
-/// The "Local Scout" of the Buddhi architecture.
-/// It scans the AST to find the exact code chunk (function/class) relevant
-/// to the user's intent, stripping away irrelevant boilerplate.
 pub struct BuddhiExtractor {
-    parser: Parser,
+    registry: GrammarRegistry,
 }
 
 impl BuddhiExtractor {
     pub fn new() -> Self {
         Self {
-            parser: Parser::new(),
+            registry: GrammarRegistry::new(),
         }
     }
 
-    /// Extracts the relevant code context for a given search term.
     pub fn extract_context(
         &mut self,
         code: &str,
         language: &str,
         search_term: &str,
     ) -> Option<String> {
-        // 1. Dynamically load the language grammar from the pack
-        let lang = tree_sitter_language_pack::language(language)?;
-        self.parser.set_language(&lang).ok()?;
-
-        // 2. Parse the source code into an AST
-        let tree = self.parser.parse(code, None)?;
+        let mut parser = self.registry.get_parser(language)?;
+        let tree = parser.parse(code)?;
         let root_node = tree.root_node();
 
-        // 3. Search for the matching definition
         let term = search_term.to_lowercase();
         self.find_matching_node(root_node, &term, code)
     }
 
-    /// Recursively traverses the AST to find functions/classes matching the intent.
-    fn find_matching_node(&self, node: Node, term: &str, source: &str) -> Option<String> {
+    fn find_matching_node(
+        &self,
+        node: tree_sitter_language_pack::Node,
+        term: &str,
+        source: &str,
+    ) -> Option<String> {
         let kind = node.kind();
-
-        // Broadly identify definition nodes across 371 languages
         let is_definition = kind.contains("function")
             || kind.contains("class")
             || kind.contains("method")
-            || kind.contains("impl");
+            || kind.contains("impl")
+            || kind.contains("definition");
 
         if is_definition {
-            // Standard tree-sitter convention: definitions expose a "name" field
             if let Some(name_node) = node.child_by_field_name("name") {
-                let name = &source[name_node.byte_range()];
-                // Case-insensitive matching against the user's intent
+                let start = name_node.start_byte();
+                let end = name_node.end_byte();
+                let name = &source[start..end];
                 if name.to_lowercase().contains(term) {
-                    // Surgical extraction: Return only the matched node's text
-                    return Some(source[node.byte_range()].to_string());
+                    let node_start = node.start_byte();
+                    let node_end = node.end_byte();
+                    return Some(source[node_start..node_end].to_string());
                 }
             }
         }
 
-        // Traverse child nodes
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            if let Some(found) = self.find_matching_node(child, term, source) {
-                return Some(found);
+        // THE BUDDHI WAY: Cast boundary once, iterate natively, fail safely.
+        let child_count: u32 = node
+            .child_count()
+            .try_into()
+            .expect("AST node child count exceeded u32::MAX");
+
+        for i in 0..child_count {
+            if let Some(child) = node.child(i) {
+                if let Some(found) = self.find_matching_node(child, term, source) {
+                    return Some(found);
+                }
             }
         }
         None

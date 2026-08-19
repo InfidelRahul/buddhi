@@ -1,6 +1,5 @@
 use buddhi_core::error::{BuddhiError, Result};
 use std::sync::Mutex;
-use tree_sitter::{Language, Parser};
 
 pub struct RustSymbolExtractor {
     parser: Mutex<Parser>,
