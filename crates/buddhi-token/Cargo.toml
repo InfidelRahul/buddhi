@@ -6,7 +6,5 @@ license.workspace = true
 
 [dependencies]
 buddhi-core = { path = "../buddhi-core" }
-anyhow.workspace = true
+gigatoken.workspace = true
 tracing.workspace = true
-# The package is named "gigatoken" but the lib target is "gigatoken_rs"
-gigatoken_rs = { package = "gigatoken", git = "https://github.com/marcelroed/gigatoken.git" }

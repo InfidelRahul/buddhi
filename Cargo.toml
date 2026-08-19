@@ -25,6 +25,7 @@ edition = "2021"
 license = "MIT"
 
 [workspace.dependencies]
+gigatoken = { git = "https://github.com/InfidelRahul/rs-gigatoken.git", branch = "main" }
 anyhow = "1.0"
 thiserror = "1.0"
 serde = { version = "1.0", features = ["derive"] }
