@@ -13,20 +13,23 @@ impl GrammarRegistry {
         let mut grammars = HashMap::new();
 
         // Register Rust
-        grammars.insert("rust".to_string(), tree_sitter_rust::language());
+        grammars.insert("rust".to_string(), tree_sitter_rust::LANGUAGE.into());
 
         // Register Python
-        grammars.insert("python".to_string(), tree_sitter_python::language());
+        grammars.insert("python".to_string(), tree_sitter_python::LANGUAGE.into());
 
         // Register TypeScript & JavaScript
         grammars.insert(
             "typescript".to_string(),
-            tree_sitter_typescript::language_typescript(),
+            tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
         );
-        grammars.insert("javascript".to_string(), tree_sitter_javascript::language());
+        grammars.insert(
+            "javascript".to_string(),
+            tree_sitter_javascript::LANGUAGE.into(),
+        );
 
         // Register Go
-        grammars.insert("go".to_string(), tree_sitter_go::language());
+        grammars.insert("go".to_string(), tree_sitter_go::LANGUAGE.into());
 
         Self { grammars }
     }
