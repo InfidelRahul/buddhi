@@ -1,5 +1,7 @@
 use buddhi_context::extractor::BuddhiExtractor;
+use buddhi_context::graph_builder::GraphBuilder;
 use buddhi_context::scanner::ProjectScanner;
+use buddhi_graph::CodeGraph;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
@@ -10,26 +12,23 @@ struct ProjectCache {
     languages: HashSet<String>,
 }
 
-/// The bridge between the Local Scout and the Cloud Architect.
-/// It prepares the project context locally before the LLM loop starts.
 pub struct ContextManager {
     extractor: BuddhiExtractor,
+    graph_builder: GraphBuilder,
 }
 
 impl ContextManager {
     pub fn new() -> Self {
         Self {
             extractor: BuddhiExtractor::new(),
+            graph_builder: GraphBuilder::new(),
         }
     }
 
-    /// Scans the project and builds a structural summary for the LLM.
-    /// Uses a local cache to avoid re-scanning on every run.
-    pub fn analyze_project(&self, root: &Path) -> String {
+    pub fn analyze_project(&mut self, root: &Path) -> String {
         let cache_dir = root.join(".buddhi");
         let cache_file = cache_dir.join("project.json");
 
-        // 1. Try to load from cache
         if let Ok(contents) = fs::read_to_string(&cache_file) {
             if let Ok(cache) = serde_json::from_str::<ProjectCache>(&contents) {
                 tracing::info!("Loaded project languages from cache.");
@@ -40,10 +39,15 @@ impl ContextManager {
             }
         }
 
-        // 2. Cache miss: Run the scanner
         let languages = ProjectScanner::scan(root);
 
-        // 3. Save to cache for next time
+        let mut graph = CodeGraph::new();
+        self.build_graph(root, &languages, &mut graph);
+        tracing::info!(
+            "Code Knowledge Graph built with {} nodes.",
+            graph.graph.node_count()
+        );
+
         let cache = ProjectCache {
             languages: languages.clone(),
         };
@@ -57,7 +61,33 @@ impl ContextManager {
         format!("Detected project language stack: {:?}", languages)
     }
 
-    /// Surgically extracts a code chunk from a specific file.
+    fn build_graph(&mut self, root: &Path, languages: &HashSet<String>, graph: &mut CodeGraph) {
+        let ext_lang_map: Vec<(&str, &str)> = vec![
+            ("rs", "rust"),
+            ("py", "python"),
+            ("js", "javascript"),
+            ("ts", "typescript"),
+            ("tsx", "typescript"),
+            ("go", "go"),
+            ("java", "java"),
+            ("rb", "ruby"),
+            ("php", "php"),
+        ];
+
+        for entry in fs::read_dir(root).into_iter().flatten().flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+                    if let Some((_, lang)) = ext_lang_map.iter().find(|(e, _)| *e == ext) {
+                        if languages.contains(*lang) {
+                            self.graph_builder.build_from_file(graph, &path, lang);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     pub fn extract_code_chunk(
         &mut self,
         root: &Path,

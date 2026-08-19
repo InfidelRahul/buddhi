@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+buddhi-graph = { path = "../buddhi-graph" }
 tree-sitter-language-pack.workspace = true
 buddhi-core = { path = "../buddhi-core" }
 anyhow.workspace = true

@@ -31,7 +31,7 @@ impl AgentLoop {
         let verifier = VerifyRunner::new(self.project_root.clone());
 
         // 1. LOCAL SCOUT PHASE: Analyze project structure before talking to the cloud
-        let ctx_manager = self.context_manager.lock().await;
+        let mut ctx_manager = self.context_manager.lock().await;
         let project_summary = ctx_manager.analyze_project(&self.project_root);
         drop(ctx_manager); // Release lock
 
