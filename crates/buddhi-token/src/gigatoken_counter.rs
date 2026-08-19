@@ -1,5 +1,5 @@
 use crate::counter::TokenCounter;
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use gigatoken_rs::load_tokenizer::hf::{load_hf_slice, HfTokenizer};
 use std::fs;
 use std::sync::Mutex;
@@ -13,10 +13,10 @@ pub struct GigatokenCounter {
 impl GigatokenCounter {
     pub fn try_new(tokenizer_json_path: &str) -> Result<Self> {
         let data = fs::read(tokenizer_json_path)
-            .map_err(|e| DhiError::Config(format!("Failed to read tokenizer file: {}", e)))?;
+            .map_err(|e| BuddhiError::Config(format!("Failed to read tokenizer file: {}", e)))?;
 
         let tokenizer = load_hf_slice(&data)
-            .map_err(|e| DhiError::Config(format!("Failed to load Gigatoken: {}", e)))?;
+            .map_err(|e| BuddhiError::Config(format!("Failed to load Gigatoken: {}", e)))?;
 
         Ok(Self {
             tokenizer: Mutex::new(tokenizer),
@@ -29,7 +29,7 @@ impl TokenCounter for GigatokenCounter {
         let mut tok = self
             .tokenizer
             .lock()
-            .map_err(|e| DhiError::Config(format!("Failed to acquire tokenizer lock: {}", e)))?;
+            .map_err(|e| BuddhiError::Config(format!("Failed to acquire tokenizer lock: {}", e)))?;
 
         match &mut *tok {
             HfTokenizer::Bpe(bpe_tok) => {

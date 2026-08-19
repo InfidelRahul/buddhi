@@ -1,4 +1,4 @@
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -43,7 +43,7 @@ impl VerifyRunner {
             .arg("--message-format=short")
             .current_dir(&self.root)
             .output()
-            .map_err(|e| DhiError::Config(format!("Failed to run cargo check: {}", e)))?;
+            .map_err(|e| BuddhiError::Config(format!("Failed to run cargo check: {}", e)))?;
         Ok(VerificationResult {
             success: output.status.success(),
             stdout: String::from_utf8_lossy(&output.stdout).to_string(),

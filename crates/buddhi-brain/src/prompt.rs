@@ -5,7 +5,7 @@ pub struct LocalBrainPromptBuilder;
 impl LocalBrainPromptBuilder {
     pub fn build(raw_input: &str, hints: &HeuristicHints) -> String {
         let mut prompt = String::new();
-        prompt.push_str("You are DHI local brain. Output only structured intent. Do not explain. Do not write code.\n");
+        prompt.push_str("You are BUDDHI local brain. Output only structured intent. Do not explain. Do not write code.\n");
         prompt.push_str("Extract task type, target hints, constraints, risk, privacy, routing.\n");
         prompt.push_str(&format!("Raw task: {}\n", raw_input));
 

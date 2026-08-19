@@ -1,6 +1,6 @@
 use crate::patch_safety::{PatchProposal, PatchSafety};
 use crate::types::{Tool, ToolResult};
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use buddhi_security::path_guard::PathGuard;
 use std::path::Path;
 
@@ -16,15 +16,15 @@ impl Tool for ReplaceTool {
         let path = args
             .get("path")
             .and_then(|p| p.as_str())
-            .ok_or_else(|| DhiError::ToolExecution("Missing path argument".to_string()))?;
+            .ok_or_else(|| BuddhiError::ToolExecution("Missing path argument".to_string()))?;
         let original = args
             .get("original")
             .and_then(|o| o.as_str())
-            .ok_or_else(|| DhiError::ToolExecution("Missing original argument".to_string()))?;
+            .ok_or_else(|| BuddhiError::ToolExecution("Missing original argument".to_string()))?;
         let replacement = args
             .get("replacement")
             .and_then(|r| r.as_str())
-            .ok_or_else(|| DhiError::ToolExecution("Missing replacement argument".to_string()))?;
+            .ok_or_else(|| BuddhiError::ToolExecution("Missing replacement argument".to_string()))?;
 
         let dry_run = args
             .get("dry_run")

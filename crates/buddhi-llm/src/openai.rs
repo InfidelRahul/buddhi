@@ -1,6 +1,6 @@
 use crate::provider::{ChatMessage, LlmProvider, LlmResponse, TokenUsage};
 use async_trait::async_trait;
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use futures_util::{Stream, StreamExt};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -82,12 +82,12 @@ impl LlmProvider for OpenAiClient {
             .json(&request_body)
             .send()
             .await
-            .map_err(|e| DhiError::Config(format!("OpenAI request failed: {}", e)))?;
+            .map_err(|e| BuddhiError::Config(format!("OpenAI request failed: {}", e)))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
-            return Err(DhiError::Config(format!(
+            return Err(BuddhiError::Config(format!(
                 "OpenAI API error ({}): {}",
                 status, error_text
             )));
@@ -96,7 +96,7 @@ impl LlmProvider for OpenAiClient {
         let openai_response: OpenAiResponse = response
             .json()
             .await
-            .map_err(|e| DhiError::Config(format!("Failed to parse OpenAI response: {}", e)))?;
+            .map_err(|e| BuddhiError::Config(format!("Failed to parse OpenAI response: {}", e)))?;
 
         let content = openai_response
             .choices
@@ -131,12 +131,12 @@ impl LlmProvider for OpenAiClient {
             .json(&request_body)
             .send()
             .await
-            .map_err(|e| DhiError::Config(format!("OpenAI stream request failed: {}", e)))?;
+            .map_err(|e| BuddhiError::Config(format!("OpenAI stream request failed: {}", e)))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
-            return Err(DhiError::Config(format!(
+            return Err(BuddhiError::Config(format!(
                 "OpenAI API stream error ({}): {}",
                 status, error_text
             )));
@@ -146,8 +146,8 @@ impl LlmProvider for OpenAiClient {
 
         // Map the byte stream to a stream of parsed string chunks
         let mapped_stream = byte_stream.map(|chunk_result| {
-            let chunk =
-                chunk_result.map_err(|e| DhiError::Config(format!("Stream read error: {}", e)))?;
+            let chunk = chunk_result
+                .map_err(|e| BuddhiError::Config(format!("Stream read error: {}", e)))?;
             let text = String::from_utf8_lossy(&chunk).to_string();
 
             // OpenAI SSE format sends lines like "data: {...}"

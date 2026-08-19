@@ -13,7 +13,7 @@ impl CloudPromptBuilder {
     ) -> String {
         let mut prompt = String::new();
         prompt.push_str(
-            "SYSTEM: You are DHI Cloud Coder. Output ONLY valid JSON tool calls. No prose.\n",
+            "SYSTEM: You are BUDDHI Cloud Coder. Output ONLY valid JSON tool calls. No prose.\n",
         );
         prompt.push_str(&format!("TASK: {:?}\n", contract.task_type));
         prompt.push_str(&format!("BUDGET: {}\n", contract.token_budget));

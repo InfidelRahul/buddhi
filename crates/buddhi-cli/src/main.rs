@@ -12,7 +12,7 @@ const ANSI_CYAN: &str = "\x1b[36m";
 const ANSI_RESET: &str = "\x1b[0m";
 
 #[derive(Parser, Debug)]
-#[command(name = "dhi", about = "Token-minimal AI coding engine")]
+#[command(name = "buddhi", about = "Token-minimal AI coding engine")]
 struct Args {
     #[arg(short, long, default_value = "config.yaml")]
     config: PathBuf,
@@ -25,7 +25,7 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
     let args = Args::parse();
     let config = load_config(&args.config)?;
-    tracing::info!("DHI Engine initialized successfully.");
+    tracing::info!("BUDDHI Engine initialized successfully.");
 
     if let Some(task_input) = args.task {
         tracing::info!("Processing task: {}", task_input);
@@ -45,7 +45,7 @@ async fn main() -> anyhow::Result<()> {
         let hints = heuristic_parser.parse(&task_input);
 
         println!(
-            "\n{}--- DHI Local Brain Streaming ---{}",
+            "\n{}--- BUDDHI Local Brain Streaming ---{}",
             ANSI_CYAN, ANSI_RESET
         );
 

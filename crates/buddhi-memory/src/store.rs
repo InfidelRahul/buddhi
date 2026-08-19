@@ -1,4 +1,4 @@
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -20,10 +20,10 @@ pub struct MemoryStore {
 
 impl MemoryStore {
     pub fn load(project_root: &Path) -> Result<Self> {
-        let path = project_root.join(".dhi").join("memory.json");
+        let path = project_root.join(".buddhi").join("memory.json");
         let entries = if path.exists() {
             let content = fs::read_to_string(&path)
-                .map_err(|e| DhiError::Config(format!("Failed to read memory: {}", e)))?;
+                .map_err(|e| BuddhiError::Config(format!("Failed to read memory: {}", e)))?;
             serde_json::from_str(&content).unwrap_or_default()
         } else {
             Vec::new()
@@ -51,11 +51,11 @@ impl MemoryStore {
 
     fn save(&self) -> Result<()> {
         if let Some(parent) = self.path.parent() {
-            fs::create_dir_all(parent).map_err(DhiError::Io)?;
+            fs::create_dir_all(parent).map_err(BuddhiError::Io)?;
         }
         let content =
-            serde_json::to_string_pretty(&self.entries).map_err(DhiError::Serialization)?;
-        fs::write(&self.path, content).map_err(DhiError::Io)?;
+            serde_json::to_string_pretty(&self.entries).map_err(BuddhiError::Serialization)?;
+        fs::write(&self.path, content).map_err(BuddhiError::Io)?;
         Ok(())
     }
 }

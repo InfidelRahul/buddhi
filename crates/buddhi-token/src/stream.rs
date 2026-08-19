@@ -1,5 +1,5 @@
 use crate::budget::TokenBudget;
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 
 pub struct TokenStreamTracker {
     budget: TokenBudget,
@@ -23,7 +23,7 @@ impl TokenStreamTracker {
         let total_tokens = self.budget.count_text(&self.accumulated_text)?;
 
         if total_tokens > self.budget.max_tokens() {
-            return Err(DhiError::BudgetExceeded(format!(
+            return Err(BuddhiError::BudgetExceeded(format!(
                 "Stream exceeded budget: {} tokens",
                 total_tokens
             )));

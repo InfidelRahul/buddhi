@@ -1,5 +1,5 @@
 use crate::engine::InferenceEngine;
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use candle_core::Device;
 use std::path::Path;
 use tokenizers::Tokenizer;
@@ -13,19 +13,19 @@ pub struct SafetensorsEngine {
 impl SafetensorsEngine {
     pub fn try_new(model_dir: &Path, tokenizer_path: &Path) -> Result<Self> {
         if !model_dir.exists() {
-            return Err(DhiError::Config(format!(
+            return Err(BuddhiError::Config(format!(
                 "Model dir not found: {}",
                 model_dir.display()
             )));
         }
         if !tokenizer_path.exists() {
-            return Err(DhiError::Config(format!(
+            return Err(BuddhiError::Config(format!(
                 "Tokenizer not found: {}",
                 tokenizer_path.display()
             )));
         }
         let tokenizer = Tokenizer::from_file(tokenizer_path)
-            .map_err(|e| DhiError::Config(format!("Failed to load tokenizer: {}", e)))?;
+            .map_err(|e| BuddhiError::Config(format!("Failed to load tokenizer: {}", e)))?;
         Ok(Self {
             device: Device::Cpu,
             tokenizer,

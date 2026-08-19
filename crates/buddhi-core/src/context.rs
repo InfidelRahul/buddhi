@@ -1,4 +1,4 @@
-use crate::error::{DhiError, Result};
+use crate::error::{BuddhiError, Result};
 
 pub struct ContextManager {
     max_tokens: usize,
@@ -14,7 +14,7 @@ impl ContextManager {
     pub fn add_message(&mut self, message: &str) -> Result<()> {
         let estimated_tokens = message.len() / 4;
         if estimated_tokens > self.max_tokens {
-            return Err(DhiError::Config(format!(
+            return Err(BuddhiError::Config(format!(
                 "Message exceeds context window: {} tokens",
                 estimated_tokens
             )));

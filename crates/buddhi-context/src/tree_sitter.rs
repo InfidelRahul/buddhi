@@ -1,4 +1,4 @@
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use std::sync::Mutex;
 use tree_sitter::{Language, Parser};
 
@@ -10,9 +10,9 @@ impl RustSymbolExtractor {
     pub fn try_new() -> Result<Self> {
         let mut parser = Parser::new();
         let language: Language = tree_sitter_rust::language();
-        parser
-            .set_language(&language)
-            .map_err(|e| DhiError::Config(format!("Failed to set tree-sitter language: {}", e)))?;
+        parser.set_language(&language).map_err(|e| {
+            BuddhiError::Config(format!("Failed to set tree-sitter language: {}", e))
+        })?;
         Ok(Self {
             parser: Mutex::new(parser),
         })
@@ -22,11 +22,11 @@ impl RustSymbolExtractor {
         let mut parser = self
             .parser
             .lock()
-            .map_err(|e| DhiError::Config(format!("Failed to acquire parser lock: {}", e)))?;
+            .map_err(|e| BuddhiError::Config(format!("Failed to acquire parser lock: {}", e)))?;
 
         let tree = parser
             .parse(source_code, None)
-            .ok_or_else(|| DhiError::Config("Tree-sitter parse failed".to_string()))?;
+            .ok_or_else(|| BuddhiError::Config("Tree-sitter parse failed".to_string()))?;
 
         let mut symbols = Vec::new();
         let root_node = tree.root_node();

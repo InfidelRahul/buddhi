@@ -1,5 +1,5 @@
 use crate::counter::TokenCounter;
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use std::sync::Arc;
 
 pub struct TokenBudget {
@@ -20,7 +20,7 @@ impl TokenBudget {
     pub fn check_and_add(&mut self, text: &str) -> Result<()> {
         let tokens = self.counter.count_tokens(text)?;
         if self.used_tokens + tokens > self.max_tokens_per_turn {
-            return Err(DhiError::BudgetExceeded(format!(
+            return Err(BuddhiError::BudgetExceeded(format!(
                 "Attempted to add {} tokens, but only {} remain",
                 tokens,
                 self.max_tokens_per_turn.saturating_sub(self.used_tokens)

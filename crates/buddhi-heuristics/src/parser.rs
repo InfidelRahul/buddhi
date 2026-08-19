@@ -1,5 +1,5 @@
 use crate::types::HeuristicHints;
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use buddhi_core::types::TaskType;
 use regex::Regex;
 
@@ -11,7 +11,7 @@ impl HeuristicParser {
     pub fn try_new() -> Result<Self> {
         // Detect file paths like src/main.rs or ./file.txt
         let file_pattern = Regex::new(r"(?:^|\s)([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+)(?:$|\s)")
-            .map_err(|e| DhiError::Config(format!("Regex compilation failed: {}", e)))?;
+            .map_err(|e| BuddhiError::Config(format!("Regex compilation failed: {}", e)))?;
 
         Ok(Self { file_pattern })
     }

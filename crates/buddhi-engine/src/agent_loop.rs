@@ -1,4 +1,4 @@
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use buddhi_tools::executor::{ToolCall, ToolExecutor};
 use buddhi_verify::runner::VerifyRunner;
 use serde_json::json;
@@ -55,7 +55,7 @@ impl AgentLoop {
                 return Ok(());
             }
         }
-        Err(DhiError::Config(
+        Err(BuddhiError::Config(
             "Max retries exceeded. Task failed.".to_string(),
         ))
     }

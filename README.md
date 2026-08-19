@@ -1,8 +1,8 @@
-# BUDDHI (Direct Human Intent)
+# BUDBUDDHI (Direct Human Intent)
 
-> A token-minimal AI coding engine built in Rust. BUDDHI translates raw human intent into precise code modifications using a hybrid local/cloud inference architecture with strict token budgets, security sandboxing, and automatic verification.
+> A token-minimal AI coding engine built in Rust. BUDBUDDHI translates raw human intent into precise code modifications using a hybrid local/cloud inference architecture with strict token budgets, security sandboxing, and automatic verification.
 
-[![CI](https://github.com/InfidelRahul/dhi-dev/actions/workflows/ci.yml/badge.svg)](https://github.com/InfidelRahul/dhi-dev/actions/workflows/ci.yml)
+[![CI](https://github.com/InfidelRahul/buddhi-dev/actions/workflows/ci.yml/badge.svg)](https://github.com/InfidelRahul/buddhi-dev/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/rust-1.75+-orange.svg)](https://www.rust-lang.org)
 
@@ -27,7 +27,7 @@
 
 ## Philosophy
 
-BUDDHI is built on three core principles:
+BUDBUDDHI is built on three core principles:
 
 1. **Token Minimalism** — Every prompt, context window, and cloud call is budget-constrained. No wasted tokens.
 2. **Security First** — All file operations pass through `PathGuard`. All patches go through `PatchSafety` with dry-run validation.
@@ -39,26 +39,26 @@ BUDDHI is built on three core principles:
 
 ```
 +---------------------------------------------------------------------+
-|                         dhi-cli (Entry Point)                        |
+|                         buddhi-cli (Entry Point)                        |
 +---------------------------------------------------------------------+
-|                              dhi-engine                              |
+|                              buddhi-engine                              |
 |              (Agent Loop - Prompt Builder - Orchestration)           |
 +------------------+------------------+-------------------------------+
-|   dhi-brain      |    dhi-llm       |         dhi-tools             |
+|   buddhi-brain      |    buddhi-llm       |         buddhi-tools             |
 | (Local Intent    | (Cloud LLM       |  (expand - get_snippet -      |
 |  Optimization)   |  Streaming)      |   replace - patch safety)     |
 +------------------+------------------+-------------------------------+
-|                          dhi-inference                               |
+|                          buddhi-inference                               |
 |              +------------------+------------------+                 |
 |              |   GGUF Engine    | Safetensors      |                 |
 |              |  (llama-cpp-2)   | Engine           |                 |
 |              |  CPU - Q4_K_M    | (candle-core)    |                 |
 |              +------------------+------------------+                 |
 +---------------------------------------------------------------------+
-|  dhi-token  |  dhi-security  |  dhi-context  |  dhi-verify          |
+|  buddhi-token  |  buddhi-security  |  buddhi-context  |  buddhi-verify          |
 |  (Budgets)  |  (PathGuard)   |  (Tree-sitter)|  (Error Compressor)  |
 +---------------------------------------------------------------------+
-|              dhi-core - dhi-config - dhi-rules - dhi-memory          |
+|              buddhi-core - buddhi-config - buddhi-rules - buddhi-memory          |
 +---------------------------------------------------------------------+
 ```
 
@@ -130,8 +130,8 @@ winget install Microsoft.VisualStudio.2022.BuildTools
 
 ```bash
 # Clone the repository
-git clone https://github.com/InfidelRahul/dhi-dev.git
-cd dhi-dev
+git clone https://github.com/InfidelRahul/buddhi-dev.git
+cd buddhi-dev
 
 # Build in release mode (recommended)
 make release
@@ -140,14 +140,14 @@ make release
 make build
 
 # Verify installation
-cargo run -p dhi-cli -- --help
+cargo run -p buddhi-cli -- --help
 ```
 
 ---
 
 ## Configuration
 
-BUDDHI uses a YAML configuration file. Copy the example and customize:
+BUDBUDDHI uses a YAML configuration file. Copy the example and customize:
 
 ```bash
 cp config.example.yaml config.yaml
@@ -197,15 +197,15 @@ export ANTHROPIC_API_KEY="sk-ant-your-key-here"  # Optional
 
 ```bash
 # Run a coding task
-cargo run -p dhi-cli -- --task "Fix the null pointer error in src/parser.rs"
+cargo run -p buddhi-cli -- --task "Fix the null pointer error in src/parser.rs"
 
 # Run with custom config
-cargo run -p dhi-cli -- --config custom.yaml --task "Add unit tests for the tokenizer"
+cargo run -p buddhi-cli -- --config custom.yaml --task "Add unit tests for the tokenizer"
 ```
 
 ### Model Loading
 
-BUDDHI automatically detects model format:
+BUDBUDDHI automatically detects model format:
 
 ```bash
 # GGUF model (fast CPU inference, quantized)
@@ -276,28 +276,28 @@ make clean      # Clean build artifacts
 
 ### Adding a New Tool
 
-1. Create `crates/dhi-tools/src/my_tool.rs`
+1. Create `crates/buddhi-tools/src/my_tool.rs`
 2. Implement the `Tool` trait
-3. Register in `crates/dhi-tools/src/registry.rs`
-4. Add tests in `crates/dhi-tools/tests/`
+3. Register in `crates/buddhi-tools/src/registry.rs`
+4. Add tests in `crates/buddhi-tools/tests/`
 
 ### Adding a New Engine
 
-1. Create `crates/dhi-inference/src/my_engine.rs`
+1. Create `crates/buddhi-inference/src/my_engine.rs`
 2. Implement the `InferenceEngine` trait
-3. Add routing logic in `crates/dhi-inference/src/loader.rs`
+3. Add routing logic in `crates/buddhi-inference/src/loader.rs`
 
 ### Running Specific Tests
 
 ```bash
 # Test a specific crate
-cargo test -p dhi-inference
+cargo test -p buddhi-inference
 
 # Test with output
-cargo test -p dhi-security -- --nocapture
+cargo test -p buddhi-security -- --nocapture
 
 # Run benchmarks
-cargo bench -p dhi-token
+cargo bench -p buddhi-token
 ```
 
 ---
@@ -305,33 +305,33 @@ cargo bench -p dhi-token
 ## Project Structure
 
 ```
-dhi-dev/
+buddhi-dev/
 ├── Cargo.toml                    # Workspace root
 ├── Makefile                      # Build automation
 ├── config.example.yaml           # Configuration template
-├── .dhi/
+├── .buddhi/
 │   └── rules.example.yaml        # Project rules template
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml                # Continuous Integration
 │       └── release.yml           # Release automation
 ├── crates/
-│   ├── dhi-core/                 # Domain models, errors, session
-│   ├── dhi-config/               # YAML config loading
-│   ├── dhi-cli/                  # Command-line interface
-│   ├── dhi-testsupport/          # Test utilities
-│   ├── dhi-heuristics/           # Task parsing & detection
-│   ├── dhi-brain/                # Local intent optimization
-│   ├── dhi-token/                # Token budgets & counting
-│   ├── dhi-llm/                  # Cloud LLM providers
-│   ├── dhi-tools/                # Code manipulation tools
-│   ├── dhi-security/             # PathGuard & sandboxing
-│   ├── dhi-context/              # Tree-sitter AST parsing
-│   ├── dhi-verify/               # Compilation & test verification
-│   ├── dhi-rules/                # Global & project rules
-│   ├── dhi-memory/               # Persistent lesson storage
-│   ├── dhi-engine/               # Agent loop orchestration
-│   └── dhi-inference/            # Dual engine (GGUF + Safetensors)
+│   ├── buddhi-core/                 # Domain models, errors, session
+│   ├── buddhi-config/               # YAML config loading
+│   ├── buddhi-cli/                  # Command-line interface
+│   ├── buddhi-testsupport/          # Test utilities
+│   ├── buddhi-heuristics/           # Task parsing & detection
+│   ├── buddhi-brain/                # Local intent optimization
+│   ├── buddhi-token/                # Token budgets & counting
+│   ├── buddhi-llm/                  # Cloud LLM providers
+│   ├── buddhi-tools/                # Code manipulation tools
+│   ├── buddhi-security/             # PathGuard & sandboxing
+│   ├── buddhi-context/              # Tree-sitter AST parsing
+│   ├── buddhi-verify/               # Compilation & test verification
+│   ├── buddhi-rules/                # Global & project rules
+│   ├── buddhi-memory/               # Persistent lesson storage
+│   ├── buddhi-engine/               # Agent loop orchestration
+│   └── buddhi-inference/            # Dual engine (GGUF + Safetensors)
 └── models/                       # Downloaded model files (gitignored)
 ```
 
@@ -398,4 +398,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-**Built with ❤️ by the BUDDHI community. Token-efficient. Security-first. Rust-native.**
+**Built with ❤️ by the BUDBUDDHI community. Token-efficient. Security-first. Rust-native.**

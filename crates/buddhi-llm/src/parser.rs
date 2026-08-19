@@ -1,4 +1,4 @@
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use buddhi_core::types::ToolCall;
 use serde_json::Value;
 
@@ -20,12 +20,12 @@ impl StreamInterceptor {
         if let Some(start) = self.buffer.find('{') {
             let prefix = self.buffer[..start].trim();
             if !prefix.is_empty() {
-                return Err(DhiError::Config(format!("Prose detected: {}", prefix)));
+                return Err(BuddhiError::Config(format!("Prose detected: {}", prefix)));
             }
         } else {
             // No '{' yet, check if the buffer is just whitespace or prose
             if !self.buffer.trim().is_empty() {
-                return Err(DhiError::Config(format!(
+                return Err(BuddhiError::Config(format!(
                     "Prose detected: {}",
                     self.buffer.trim()
                 )));
@@ -48,14 +48,14 @@ impl StreamInterceptor {
                             }));
                         }
                     }
-                    return Err(DhiError::Config("Invalid tool call schema".to_string()));
+                    return Err(BuddhiError::Config("Invalid tool call schema".to_string()));
                 }
                 Err(e) => {
                     // If it's an EOF error, it means the JSON is incomplete
                     if e.is_eof() {
                         return Ok(None);
                     }
-                    return Err(DhiError::Config(format!("JSON parse error: {}", e)));
+                    return Err(BuddhiError::Config(format!("JSON parse error: {}", e)));
                 }
             }
         }

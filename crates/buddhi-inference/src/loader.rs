@@ -1,7 +1,7 @@
 use crate::engine::InferenceEngine;
 use crate::gguf_engine::GgufEngine;
 use crate::safetensors_engine::SafetensorsEngine;
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use std::path::Path;
 
 pub struct ModelLoader;
@@ -26,7 +26,7 @@ impl ModelLoader {
             return Ok(Box::new(engine));
         }
 
-        Err(DhiError::Config(format!(
+        Err(BuddhiError::Config(format!(
             "Unsupported model format: {}. Provide a .gguf file or a directory containing .safetensors.",
             model_path.display()
         )))

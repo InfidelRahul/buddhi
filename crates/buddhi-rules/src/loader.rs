@@ -1,5 +1,5 @@
 use crate::types::{ProjectRule, RuleSet};
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use std::fs;
 use std::path::Path;
 
@@ -37,16 +37,16 @@ impl RuleLoader {
     }
 
     fn load_project_rules(project_root: &Path) -> Result<RuleSet> {
-        let rules_path = project_root.join(".dhi").join("rules.yaml");
+        let rules_path = project_root.join(".buddhi").join("rules.yaml");
         if !rules_path.exists() {
             return Ok(RuleSet { rules: Vec::new() });
         }
 
         let content = fs::read_to_string(rules_path)
-            .map_err(|e| DhiError::Config(format!("Failed to read rules.yaml: {}", e)))?;
+            .map_err(|e| BuddhiError::Config(format!("Failed to read rules.yaml: {}", e)))?;
 
         let rules: RuleSet = serde_yaml::from_str(&content)
-            .map_err(|e| DhiError::Config(format!("Failed to parse rules.yaml: {}", e)))?;
+            .map_err(|e| BuddhiError::Config(format!("Failed to parse rules.yaml: {}", e)))?;
 
         Ok(rules)
     }

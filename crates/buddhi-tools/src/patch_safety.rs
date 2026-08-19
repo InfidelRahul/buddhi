@@ -1,4 +1,4 @@
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use std::fs;
 use std::path::Path;
 
@@ -19,10 +19,10 @@ pub struct PatchSafety;
 impl PatchSafety {
     pub fn apply(proposal: &PatchProposal) -> Result<PatchResult> {
         let content = fs::read_to_string(proposal.path)
-            .map_err(|e| DhiError::ToolExecution(format!("Failed to read file: {}", e)))?;
+            .map_err(|e| BuddhiError::ToolExecution(format!("Failed to read file: {}", e)))?;
 
         if !content.contains(proposal.original) {
-            return Err(DhiError::ToolExecution(
+            return Err(BuddhiError::ToolExecution(
                 "Original code not found in file. Patch rejected.".to_string(),
             ));
         }
@@ -46,15 +46,15 @@ impl PatchSafety {
         }
 
         // Create temporary rollback backup
-        let backup_path = proposal.path.with_extension("dhi.bak");
+        let backup_path = proposal.path.with_extension("buddhi.bak");
         fs::write(&backup_path, &content)
-            .map_err(|e| DhiError::ToolExecution(format!("Failed to create backup: {}", e)))?;
+            .map_err(|e| BuddhiError::ToolExecution(format!("Failed to create backup: {}", e)))?;
 
         // Apply patch atomically
         fs::write(proposal.path, new_content).map_err(|e| {
             // Attempt to restore backup if write fails
             let _ = fs::write(proposal.path, &content);
-            DhiError::ToolExecution(format!("Failed to write patch: {}", e))
+            BuddhiError::ToolExecution(format!("Failed to write patch: {}", e))
         })?;
 
         // Clean up backup on success (Git handles real rollbacks)

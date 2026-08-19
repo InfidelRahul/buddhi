@@ -1,4 +1,4 @@
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -18,9 +18,9 @@ impl FileIndexer {
     }
 
     fn walk_dir(&self, dir: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
-        let entries = fs::read_dir(dir).map_err(|e| DhiError::Config(e.to_string()))?;
+        let entries = fs::read_dir(dir).map_err(|e| BuddhiError::Config(e.to_string()))?;
         for entry in entries {
-            let entry = entry.map_err(|e| DhiError::Config(e.to_string()))?;
+            let entry = entry.map_err(|e| BuddhiError::Config(e.to_string()))?;
             let path = entry.path();
             if path.is_dir() {
                 // Skip hidden directories and target
