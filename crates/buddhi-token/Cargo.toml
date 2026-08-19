@@ -6,5 +6,5 @@ license.workspace = true
 
 [dependencies]
 buddhi-core = { path = "../buddhi-core" }
-gigatoken.workspace = true
+rs-gigatoken.workspace = true
 tracing.workspace = true

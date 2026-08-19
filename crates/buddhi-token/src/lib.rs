@@ -1,6 +1,6 @@
 use buddhi_core::error::{DhiError, Result};
-use gigatoken_rs::load_tokenizer::hf::load_hf_bpe;
-use gigatoken_rs::Tokenizer;
+use rs_gigatoken::load_tokenizer::hf::load_hf_bpe;
+use rs_gigatoken::Tokenizer;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
