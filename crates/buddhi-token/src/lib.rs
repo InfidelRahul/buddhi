@@ -1,4 +1,4 @@
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use rs_gigatoken::load_tokenizer::hf::load_hf_bpe;
 use rs_gigatoken::Tokenizer;
 use std::path::PathBuf;
@@ -17,7 +17,7 @@ impl TokenCounter for FastEstimator {
     }
 }
 
-/// High-throughput gigatoken_rs counter
+/// High-throughput rs_gigatoken counter
 pub struct GigatokenCounter {
     tokenizer: Mutex<Tokenizer>,
 }
@@ -26,7 +26,7 @@ impl GigatokenCounter {
     pub fn try_new(tokenizer_path: &PathBuf) -> Result<Self> {
         let path_str = tokenizer_path.to_str().unwrap_or("tokenizer.json");
         let tokenizer = load_hf_bpe(path_str)
-            .map_err(|e| DhiError::Config(format!("Failed to load gigatoken: {}", e)))?;
+            .map_err(|e| BuddhiError::Config(format!("Failed to load gigatoken: {}", e)))?;
         Ok(Self {
             tokenizer: Mutex::new(tokenizer),
         })
@@ -38,7 +38,7 @@ impl TokenCounter for GigatokenCounter {
         if let Ok(mut guard) = self.tokenizer.lock() {
             let mut tokens = Vec::new();
             guard.memoized_encode(
-                gigatoken_rs::pretokenize::pretokenize_as_iter(text.as_bytes()),
+                rs_gigatoken::pretokenize::pretokenize_as_iter(text.as_bytes()),
                 |ids| tokens.extend_from_slice(ids),
             );
             tokens.len()
@@ -87,7 +87,7 @@ impl TokenBudget {
     pub fn check_turn(&self, text: &str) -> Result<bool> {
         let tokens = self.counter.count(text);
         if tokens > self.max_tokens_per_turn {
-            return Err(DhiError::Config(format!(
+            return Err(BuddhiError::Config(format!(
                 "Turn budget exceeded: {} tokens (limit: {})",
                 tokens, self.max_tokens_per_turn
             )));
