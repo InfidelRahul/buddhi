@@ -1,3 +1,3 @@
-pub mod compressor;
-pub mod indexer;
-pub mod tree_sitter;
+pub mod parser;
+pub mod registry;
+pub mod scanner;
