@@ -1,0 +1,11 @@
+[package]
+name = "buddhi-testsupport"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+buddhi-core = { path = "../buddhi-core" }
+buddhi-config = { path = "../buddhi-config" }
+anyhow.workspace = true
+tokio.workspace = true

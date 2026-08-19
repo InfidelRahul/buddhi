@@ -1,0 +1,12 @@
+[package]
+name = "buddhi-token"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+buddhi-core = { path = "../buddhi-core" }
+anyhow.workspace = true
+tracing.workspace = true
+# The package is named "gigatoken" but the lib target is "gigatoken_rs"
+gigatoken_rs = { package = "gigatoken", git = "https://github.com/marcelroed/gigatoken.git" }

@@ -1,0 +1,12 @@
+[package]
+name = "buddhi-heuristics"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+buddhi-core = { path = "../buddhi-core" }
+anyhow.workspace = true
+regex.workspace = true
+tracing.workspace = true
+serde.workspace = true

@@ -1,0 +1,15 @@
+[package]
+name = "buddhi-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+[dependencies]
+buddhi-core = { path = "../buddhi-core" }
+buddhi-llm = { path = "../buddhi-llm" }
+buddhi-tools = { path = "../buddhi-tools" }
+buddhi-verify = { path = "../buddhi-verify" }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true

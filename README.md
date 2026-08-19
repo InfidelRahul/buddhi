@@ -1,6 +1,6 @@
-# DHI (Direct Human Intent)
+# BUDDHI (Direct Human Intent)
 
-> A token-minimal AI coding engine built in Rust. DHI translates raw human intent into precise code modifications using a hybrid local/cloud inference architecture with strict token budgets, security sandboxing, and automatic verification.
+> A token-minimal AI coding engine built in Rust. BUDDHI translates raw human intent into precise code modifications using a hybrid local/cloud inference architecture with strict token budgets, security sandboxing, and automatic verification.
 
 [![CI](https://github.com/InfidelRahul/dhi-dev/actions/workflows/ci.yml/badge.svg)](https://github.com/InfidelRahul/dhi-dev/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -27,7 +27,7 @@
 
 ## Philosophy
 
-DHI is built on three core principles:
+BUDDHI is built on three core principles:
 
 1. **Token Minimalism** — Every prompt, context window, and cloud call is budget-constrained. No wasted tokens.
 2. **Security First** — All file operations pass through `PathGuard`. All patches go through `PatchSafety` with dry-run validation.
@@ -147,7 +147,7 @@ cargo run -p dhi-cli -- --help
 
 ## Configuration
 
-DHI uses a YAML configuration file. Copy the example and customize:
+BUDDHI uses a YAML configuration file. Copy the example and customize:
 
 ```bash
 cp config.example.yaml config.yaml
@@ -205,7 +205,7 @@ cargo run -p dhi-cli -- --config custom.yaml --task "Add unit tests for the toke
 
 ### Model Loading
 
-DHI automatically detects model format:
+BUDDHI automatically detects model format:
 
 ```bash
 # GGUF model (fast CPU inference, quantized)
@@ -398,4 +398,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-**Built with ❤️ by the DHI community. Token-efficient. Security-first. Rust-native.**
+**Built with ❤️ by the BUDDHI community. Token-efficient. Security-first. Rust-native.**

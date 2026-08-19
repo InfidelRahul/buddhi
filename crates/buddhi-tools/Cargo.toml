@@ -1,0 +1,12 @@
+[package]
+name = "buddhi-tools"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+[dependencies]
+buddhi-core = { path = "../buddhi-core" }
+buddhi-security = { path = "../buddhi-security" }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true

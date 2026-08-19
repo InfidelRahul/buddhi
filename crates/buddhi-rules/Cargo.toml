@@ -1,0 +1,14 @@
+[package]
+name = "buddhi-rules"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+buddhi-core = { path = "../buddhi-core" }
+buddhi-context = { path = "../buddhi-context" }
+anyhow.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
+tracing.workspace = true
+tree-sitter.workspace = true

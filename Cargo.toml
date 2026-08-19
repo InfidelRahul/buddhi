@@ -1,22 +1,22 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/dhi-core",
-    "crates/dhi-config",
-    "crates/dhi-cli",
-    "crates/dhi-testsupport",
-    "crates/dhi-heuristics",
-    "crates/dhi-brain",
-    "crates/dhi-token",
-    "crates/dhi-llm",
-    "crates/dhi-tools",
-    "crates/dhi-security",
-    "crates/dhi-context",
-    "crates/dhi-verify",
-    "crates/dhi-rules",
-    "crates/dhi-memory",
-    "crates/dhi-engine",
-    "crates/dhi-inference",
+    "crates/buddhi-core",
+    "crates/buddhi-config",
+    "crates/buddhi-cli",
+    "crates/buddhi-testsupport",
+    "crates/buddhi-heuristics",
+    "crates/buddhi-brain",
+    "crates/buddhi-token",
+    "crates/buddhi-llm",
+    "crates/buddhi-tools",
+    "crates/buddhi-security",
+    "crates/buddhi-context",
+    "crates/buddhi-verify",
+    "crates/buddhi-rules",
+    "crates/buddhi-memory",
+    "crates/buddhi-engine",
+    "crates/buddhi-inference",
 ]
 
 [workspace.package]

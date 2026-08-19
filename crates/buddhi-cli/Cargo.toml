@@ -1,0 +1,16 @@
+[package]
+name = "buddhi-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+[dependencies]
+buddhi-core = { path = "../buddhi-core" }
+buddhi-brain = { path = "../buddhi-brain" }
+buddhi-config = { path = "../buddhi-config" }
+buddhi-heuristics = { path = "../buddhi-heuristics" }
+buddhi-engine = { path = "../buddhi-engine" }
+anyhow.workspace = true
+clap.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

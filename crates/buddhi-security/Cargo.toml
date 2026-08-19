@@ -1,0 +1,13 @@
+[package]
+name = "buddhi-security"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+buddhi-core = { path = "../buddhi-core" }
+anyhow.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile = "3.10"
