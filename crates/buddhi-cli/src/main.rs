@@ -1,15 +1,9 @@
-use buddhi_brain::contract::IntentContractBuilder;
-use buddhi_brain::optimizer::LocalBrainOptimizer;
 use buddhi_config::loader::load_config;
-use buddhi_core::session::Session;
 use buddhi_engine::agent_loop::AgentLoop;
-use buddhi_heuristics::parser::HeuristicParser;
 use clap::Parser;
-use std::io::{self, Write};
 use std::path::PathBuf;
 
 const ANSI_GREEN: &str = "\x1b[32m";
-const ANSI_CYAN: &str = "\x1b[36m";
 const ANSI_RESET: &str = "\x1b[0m";
 
 #[derive(Parser, Debug)]
@@ -29,7 +23,9 @@ struct Args {
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
     let args = Args::parse();
-    let config = load_config(&args.config)?;
+
+    // Load config (prefix with _ to avoid unused variable warning while we transition to AgentLoop)
+    let _config = load_config(&args.config)?;
 
     tracing::info!("Buddhi Engine initialized successfully.");
 
