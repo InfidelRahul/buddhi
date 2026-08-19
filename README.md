@@ -1,8 +1,8 @@
-# BUDBUDDHI (Direct Human Intent)
+# BUDDHI (Direct Human Intent)
 
 > A token-minimal AI coding engine built in Rust. BUDBUDDHI translates raw human intent into precise code modifications using a hybrid local/cloud inference architecture with strict token budgets, security sandboxing, and automatic verification.
 
-[![CI](https://github.com/InfidelRahul/buddhi-dev/actions/workflows/ci.yml/badge.svg)](https://github.com/InfidelRahul/buddhi-dev/actions/workflows/ci.yml)
+[![CI](https://github.com/InfidelRahul/buddhi/actions/workflows/ci.yml/badge.svg)](https://github.com/InfidelRahul/buddhi/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/rust-1.75+-orange.svg)](https://www.rust-lang.org)
 
@@ -27,7 +27,7 @@
 
 ## Philosophy
 
-BUDBUDDHI is built on three core principles:
+BUDDHI is built on three core principles:
 
 1. **Token Minimalism** — Every prompt, context window, and cloud call is budget-constrained. No wasted tokens.
 2. **Security First** — All file operations pass through `PathGuard`. All patches go through `PatchSafety` with dry-run validation.
@@ -147,7 +147,7 @@ cargo run -p buddhi-cli -- --help
 
 ## Configuration
 
-BUDBUDDHI uses a YAML configuration file. Copy the example and customize:
+BUDDHI uses a YAML configuration file. Copy the example and customize:
 
 ```bash
 cp config.example.yaml config.yaml
@@ -205,7 +205,7 @@ cargo run -p buddhi-cli -- --config custom.yaml --task "Add unit tests for the t
 
 ### Model Loading
 
-BUDBUDDHI automatically detects model format:
+BUDDHI automatically detects model format:
 
 ```bash
 # GGUF model (fast CPU inference, quantized)
