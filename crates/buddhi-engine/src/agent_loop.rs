@@ -17,11 +17,10 @@ pub struct AgentLoop {
 
 impl AgentLoop {
     pub fn new(project_root: PathBuf, api_key: String, model: String) -> Self {
-        let provider = OpenAiProvider::new(api_key, model);
         Self {
             project_root,
             max_retries: 3,
-            llm_provider: Arc::new(Mutex::new(provider)),
+            llm_provider: Arc::new(Mutex::new(OpenAiProvider::new(api_key, model))),
             context_manager: Mutex::new(ContextManager::new()),
         }
     }
@@ -30,157 +29,147 @@ impl AgentLoop {
         let executor = ToolExecutor::new(self.project_root.clone());
         let verifier = VerifyRunner::new(self.project_root.clone());
 
-        // 1. LOCAL SCOUT PHASE: Analyze project structure before talking to the cloud
-        let mut ctx_manager = self.context_manager.lock().await;
-        let project_summary = ctx_manager.analyze_project(&self.project_root);
-        drop(ctx_manager); // Release lock
+        // LOCAL INTELLIGENCE PHASE
+        let mut ctx = self.context_manager.lock().await;
+        let project_summary = ctx.analyze_project(&self.project_root);
+        let rag_context = ctx.build_rag_context(task, &self.project_root);
+        drop(ctx);
 
-        tracing::info!("Local Scout Analysis: {}", project_summary);
+        tracing::info!("{}", project_summary);
+        tracing::info!("RAG context length: {} chars", rag_context.len());
 
-        let mut context = vec![
+        let mut messages = vec![
             json!({
                 "role": "system",
                 "content": format!(
-                    "You are Buddhi, an autonomous coding agent.\n{}\nYou have access to tools: read_file, write_file. Use them to complete the task. Always verify your changes compile successfully.",
-                    project_summary
+                    "You are Buddhi, an autonomous coding agent.\n{}\n\n{}\n\n\
+                     Tools: read_file, write_file. Complete the task. \
+                     Verify changes compile.",
+                    project_summary, rag_context
                 )
             }),
             json!({"role": "user", "content": task}),
         ];
 
         for attempt in 0..=self.max_retries {
-            tracing::info!("Agent loop attempt {} of {}", attempt, self.max_retries);
+            tracing::info!("Agent attempt {}/{}", attempt, self.max_retries);
+            let response = self.call_llm(&messages).await?;
 
-            // 2. CLOUD ARCHITECT PHASE: Call the real Cloud LLM
-            let response = self.call_cloud_llm(&context).await?;
+            match self.parse_response(&response) {
+                LlmAction::ToolCall(call) => {
+                    tracing::info!("Tool: {}", call.name);
+                    let tool_result = executor
+                        .execute(&call)
+                        .unwrap_or_else(|e| format!("Tool failed: {}", e));
 
-            match self.parse_llm_response(&response) {
-                LlmResponse::ToolCall(call) => {
-                    tracing::info!("Executing tool: {}", call.name);
-                    let result_str = match executor.execute(&call) {
-                        Ok(out) => out,
-                        Err(e) => format!("Tool execution failed: {}", e),
-                    };
-
-                    context.push(json!({"role": "assistant", "content": response.clone()}));
-                    context.push(json!({
+                    messages.push(json!({"role": "assistant", "content": &response}));
+                    messages.push(json!({
                         "role": "tool",
                         "tool_call_id": call.id,
-                        "content": result_str
+                        "content": tool_result
                     }));
 
                     if call.name == "write_file" {
                         let verification = verifier.run_cargo_check()?;
                         if verification.is_success() {
-                            tracing::info!("Verification passed! Task complete.");
+                            tracing::info!("Verification passed.");
                             return Ok(());
-                        } else {
-                            tracing::warn!("Verification failed. Feeding errors back to LLM...");
-                            let error_msg = format!(
-                                "The code you wrote caused the following compilation errors:\n{}\nPlease fix these errors.",
-                                verification.compress_errors()
-                            );
-                            context.push(json!({"role": "user", "content": error_msg}));
-                            continue;
                         }
+                        messages.push(json!({
+                            "role": "user",
+                            "content": format!("Compilation errors:\n{}\nFix these.",
+                                verification.compress_errors())
+                        }));
                     }
                 }
-                LlmResponse::Text(text) => {
-                    tracing::info!("Agent finished with text response.");
-                    tracing::info!("Response: {}", text);
+                LlmAction::Text(text) => {
+                    tracing::info!("Agent response: {}", text);
                     return Ok(());
                 }
-                LlmResponse::Error(e) => {
-                    tracing::error!("LLM response parsing failed: {}", e);
-                    context.push(json!({
+                LlmAction::Malformed(err) => {
+                    messages.push(json!({
                         "role": "user",
-                        "content": format!("Your previous response was malformed: {}. Please try again with valid JSON.", e)
+                        "content": format!("Malformed response: {}. Retry with valid JSON.", err)
                     }));
-                    continue;
                 }
             }
         }
 
-        Err(BuddhiError::Config(
-            "Max retries exceeded. Task failed.".to_string(),
-        ))
+        Err(BuddhiError::Config("Max retries exceeded.".into()))
     }
 
-    async fn call_cloud_llm(&self, context: &[Value]) -> Result<String> {
+    async fn call_llm(&self, messages: &[Value]) -> Result<String> {
         let provider = self.llm_provider.lock().await;
-        let request_body = json!({
+        let body = json!({
             "model": provider.model(),
-            "messages": context,
+            "messages": messages,
             "stream": false,
-            "tools": [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "read_file",
-                        "description": "Read the contents of a file",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "path": {"type": "string", "description": "The file path to read"}
-                            },
-                            "required": ["path"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "write_file",
-                        "description": "Write content to a file",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "path": {"type": "string", "description": "The file path to write to"},
-                                "content": {"type": "string", "description": "The content to write"}
-                            },
-                            "required": ["path", "content"]
-                        }
+            "tools": [{
+                "type": "function",
+                "function": {
+                    "name": "read_file",
+                    "description": "Read file contents",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"path": {"type": "string"}},
+                        "required": ["path"]
                     }
                 }
-            ]
+            }, {
+                "type": "function",
+                "function": {
+                    "name": "write_file",
+                    "description": "Write content to file",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "path": {"type": "string"},
+                            "content": {"type": "string"}
+                        },
+                        "required": ["path", "content"]
+                    }
+                }
+            }]
         });
 
         provider
-            .complete(&request_body)
+            .complete(&body)
             .await
-            .map_err(|e| BuddhiError::Config(format!("Cloud LLM call failed: {}", e)))
+            .map_err(|e| BuddhiError::Config(format!("LLM call failed: {}", e)))
     }
 
-    fn parse_llm_response(&self, response: &str) -> LlmResponse {
-        if let Ok(json_val) = serde_json::from_str::<Value>(response) {
-            if let Some(tool_calls) = json_val["choices"][0]["message"]["tool_calls"].as_array() {
-                if let Some(first_call) = tool_calls.first() {
-                    let id = first_call["id"].as_str().unwrap_or("call_1").to_string();
-                    let name = first_call["function"]["name"]
-                        .as_str()
-                        .unwrap_or("")
-                        .to_string();
-                    let args_str = first_call["function"]["arguments"].as_str().unwrap_or("{}");
-                    let arguments: Value = serde_json::from_str(args_str).unwrap_or(json!({}));
+    fn parse_response(&self, raw: &str) -> LlmAction {
+        let Ok(val) = serde_json::from_str::<Value>(raw) else {
+            return LlmAction::Text(raw.to_string());
+        };
 
-                    return LlmResponse::ToolCall(ToolCall {
-                        id,
-                        name,
-                        arguments,
-                    });
-                }
-            }
-            if let Some(content) = json_val["choices"][0]["message"]["content"].as_str() {
-                return LlmResponse::Text(content.to_string());
+        if let Some(calls) = val["choices"][0]["message"]["tool_calls"].as_array() {
+            if let Some(first) = calls.first() {
+                let id = first["id"].as_str().unwrap_or("call_0").to_string();
+                let name = first["function"]["name"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
+                let args_raw = first["function"]["arguments"].as_str().unwrap_or("{}");
+                let arguments = serde_json::from_str(args_raw).unwrap_or(json!({}));
+                return LlmAction::ToolCall(ToolCall {
+                    id,
+                    name,
+                    arguments,
+                });
             }
         }
-        LlmResponse::Text(response.to_string())
+
+        if let Some(content) = val["choices"][0]["message"]["content"].as_str() {
+            return LlmAction::Text(content.to_string());
+        }
+
+        LlmAction::Malformed("Unrecognized response structure".into())
     }
 }
 
-#[allow(dead_code)]
-enum LlmResponse {
+enum LlmAction {
     ToolCall(ToolCall),
     Text(String),
-    Error(String),
+    Malformed(String),
 }
