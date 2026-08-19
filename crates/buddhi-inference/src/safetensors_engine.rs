@@ -27,7 +27,7 @@ impl SafetensorsEngine {
         let tokenizer = Tokenizer::from_file(tokenizer_path)
             .map_err(|e| BuddhiError::Config(format!("Failed to load tokenizer: {}", e)))?;
         Ok(Self {
-            device: Device::Cpu,
+            device: Device::cpu(),
             tokenizer,
         })
     }
