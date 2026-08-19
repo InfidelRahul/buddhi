@@ -1,6 +1,5 @@
-use buddhi_core::error::{DhiError, Result};
+use buddhi_core::error::{BuddhiError, Result};
 use buddhi_llm::openai::OpenAiProvider;
-use buddhi_llm::parser::StreamInterceptor;
 use buddhi_tools::executor::{ToolCall, ToolExecutor};
 use buddhi_verify::runner::VerifyRunner;
 use serde_json::{json, Value};
@@ -91,7 +90,7 @@ impl AgentLoop {
             }
         }
 
-        Err(DhiError::Config(
+        Err(BuddhiError::Config(
             "Max retries exceeded. Task failed.".to_string(),
         ))
     }
@@ -138,7 +137,7 @@ impl AgentLoop {
         provider
             .complete(&request_body)
             .await
-            .map_err(|e| DhiError::Config(format!("Cloud LLM call failed: {}", e)))
+            .map_err(|e| BuddhiError::Config(format!("Cloud LLM call failed: {}", e)))
     }
 
     fn parse_llm_response(&self, response: &str) -> LlmResponse {
