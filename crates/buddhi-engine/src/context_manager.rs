@@ -1,7 +1,7 @@
 use buddhi_context::extractor::BuddhiExtractor;
 use buddhi_context::graph_builder::GraphBuilder;
 use buddhi_context::scanner::ProjectScanner;
-use buddhi_graph::CodeGraph;
+use buddhi_graph::{CodeGraph, GraphQuery};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
@@ -15,6 +15,7 @@ struct ProjectCache {
 pub struct ContextManager {
     extractor: BuddhiExtractor,
     graph_builder: GraphBuilder,
+    graph: CodeGraph,
 }
 
 impl ContextManager {
@@ -22,6 +23,7 @@ impl ContextManager {
         Self {
             extractor: BuddhiExtractor::new(),
             graph_builder: GraphBuilder::new(),
+            graph: CodeGraph::new(),
         }
     }
 
@@ -41,11 +43,12 @@ impl ContextManager {
 
         let languages = ProjectScanner::scan(root);
 
-        let mut graph = CodeGraph::new();
-        self.build_graph(root, &languages, &mut graph);
+        // Build the Code Knowledge Graph
+        self.build_graph(root, &languages);
         tracing::info!(
-            "Code Knowledge Graph built with {} nodes.",
-            graph.graph.node_count()
+            "Code Knowledge Graph built with {} nodes and {} edges.",
+            self.graph.graph.node_count(),
+            self.graph.graph.edge_count()
         );
 
         let cache = ProjectCache {
@@ -61,7 +64,7 @@ impl ContextManager {
         format!("Detected project language stack: {:?}", languages)
     }
 
-    fn build_graph(&mut self, root: &Path, languages: &HashSet<String>, graph: &mut CodeGraph) {
+    fn build_graph(&mut self, root: &Path, languages: &HashSet<String>) {
         let ext_lang_map: Vec<(&str, &str)> = vec![
             ("rs", "rust"),
             ("py", "python"),
@@ -80,12 +83,31 @@ impl ContextManager {
                 if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
                     if let Some((_, lang)) = ext_lang_map.iter().find(|(e, _)| *e == ext) {
                         if languages.contains(*lang) {
-                            self.graph_builder.build_from_file(graph, &path, lang);
+                            self.graph_builder
+                                .build_from_file(&mut self.graph, &path, lang);
                         }
                     }
                 }
             }
         }
+    }
+
+    /// Query the graph for structural context about a specific symbol.
+    pub fn query_context(&self, node_id: &str) -> String {
+        let query = GraphQuery::new(&self.graph);
+        query.summarize_context(node_id)
+    }
+
+    /// Find the impact zone of changing a specific node.
+    pub fn get_impact_zone(&self, node_id: &str) -> Vec<String> {
+        let query = GraphQuery::new(&self.graph);
+        query.get_impact_zone(node_id, 3)
+    }
+
+    /// Find where a symbol is defined across the project.
+    pub fn find_symbol(&self, symbol_name: &str) -> Vec<String> {
+        let query = GraphQuery::new(&self.graph);
+        query.find_symbol_locations(symbol_name)
     }
 
     pub fn extract_code_chunk(

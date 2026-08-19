@@ -35,7 +35,7 @@ pub enum EdgeKind {
 /// The in-memory Knowledge Graph for the codebase.
 pub struct CodeGraph {
     pub graph: Graph<CodeNode, EdgeKind>,
-    node_map: HashMap<String, NodeIndex>,
+    pub node_map: HashMap<String, NodeIndex>,
 }
 
 impl CodeGraph {
