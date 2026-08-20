@@ -4,91 +4,130 @@ use llama_cpp_2::context::params::LlamaContextParams;
 use llama_cpp_2::llama_backend::LlamaBackend;
 use llama_cpp_2::llama_batch::LlamaBatch;
 use llama_cpp_2::model::params::LlamaModelParams;
-use llama_cpp_2::model::AddBos;
-use llama_cpp_2::model::LlamaModel;
-use llama_cpp_2::sampling::LlamaSampler;
-use std::num::NonZeroU32;
+use llama_cpp_2::model::{AddBos, LlamaModel};
+use llama_cpp_2::token::LlamaToken;
 use std::path::Path;
+use std::sync::Arc;
 
+/// GGUF-based inference engine for fast local intent routing.
+/// Optimized for reasoning models like Qwen3.8 that emit <think> blocks.
 pub struct GgufEngine {
     backend: LlamaBackend,
-    model: LlamaModel,
-    n_ctx: u32,
+    model: Arc<LlamaModel>,
 }
+
 impl GgufEngine {
-    pub fn try_new(model_path: &Path, n_ctx: u32) -> Result<Self> {
-        if !model_path.exists() {
-            return Err(BuddhiError::Config(format!(
-                "GGUF model not found: {}",
-                model_path.display()
-            )));
-        }
-        let backend = LlamaBackend::init()
-            .map_err(|e| BuddhiError::Config(format!("Backend init failed: {}", e)))?;
-        let params = LlamaModelParams::default();
-        let model = LlamaModel::load_from_file(&backend, model_path, &params)
+    /// Load a GGUF model from disk.
+    pub fn new(model_path: &Path) -> Result<Self> {
+        let backend = LlamaBackend::init();
+        let model_params = LlamaModelParams::default();
+        let model = LlamaModel::from_file(model_path.to_str().unwrap_or(""), model_params)
             .map_err(|e| BuddhiError::Config(format!("Failed to load GGUF model: {}", e)))?;
+
+        tracing::info!("GGUF model loaded: {}", model_path.display());
         Ok(Self {
             backend,
-            model,
-            n_ctx,
+            model: Arc::new(model),
         })
     }
+
+    /// Strips <think>...</think> reasoning blocks from Qwen3.8 output.
+    fn strip_think_blocks(text: &str) -> String {
+        let mut result = String::with_capacity(text.len());
+        let mut in_think = false;
+        let mut chars = text.chars().peekable();
+
+        while let Some(c) = chars.next() {
+            if c == '<' {
+                let mut tag = String::from("<");
+                while let Some(&next) = chars.peek() {
+                    tag.push(next);
+                    chars.next();
+                    if next == '>' {
+                        break;
+                    }
+                }
+                if tag == "<think>" {
+                    in_think = true;
+                    continue;
+                }
+                if tag == "</think>" {
+                    in_think = false;
+                    continue;
+                }
+                result.push_str(&tag);
+            } else if !in_think {
+                result.push(c);
+            }
+        }
+        result.trim().to_string()
+    }
 }
+
 impl InferenceEngine for GgufEngine {
-    fn engine_type(&self) -> &'static str {
-        "gguf"
+    fn load_weights(&mut self, _path: &Path) -> Result<()> {
+        Ok(())
     }
-    fn generate(&mut self, prompt: &str, max_tokens: usize) -> Result<String> {
-        self.generate_stream(prompt, max_tokens, &mut |_| {})
+    fn load_tokenizer(&mut self, _path: &Path) -> Result<()> {
+        Ok(())
     }
-    fn generate_stream(
-        &mut self,
-        prompt: &str,
-        max_tokens: usize,
-        on_token: &mut (dyn FnMut(&str) + Send),
-    ) -> Result<String> {
-        let ctx_params = LlamaContextParams::default().with_n_ctx(NonZeroU32::new(self.n_ctx));
+
+    fn generate(&self, prompt: &str, max_tokens: usize) -> Result<String> {
+        let ctx_params = LlamaContextParams::default();
         let mut ctx = self
             .model
-            .new_context(&self.backend, ctx_params)
+            .new_context(ctx_params)
             .map_err(|e| BuddhiError::Config(format!("Context creation failed: {}", e)))?;
+
         let tokens = self
             .model
             .str_to_token(prompt, AddBos::Always)
             .map_err(|e| BuddhiError::Config(format!("Tokenization failed: {}", e)))?;
-        let mut batch = LlamaBatch::new(tokens.len() + max_tokens, 1);
+
+        let mut batch = LlamaBatch::new(2048, 1);
         for (i, token) in tokens.iter().enumerate() {
             let is_last = i == tokens.len() - 1;
             batch
-                .add(*token, i as i32, &[0], is_last)
+                .add_token(*token, i as i32, 0, is_last)
                 .map_err(|e| BuddhiError::Config(format!("Batch add failed: {}", e)))?;
         }
+
         ctx.decode(&mut batch)
-            .map_err(|e| BuddhiError::Config(format!("Prompt decode failed: {}", e)))?;
-        let mut generated = String::new();
-        let mut sampler = LlamaSampler::chain_simple([LlamaSampler::greedy()]);
-        for n_cur in tokens.len() as i32..tokens.len() as i32 + max_tokens as i32 {
-            let token = sampler.sample(&ctx, batch.n_tokens() - 1);
-            sampler.accept(token);
-            if self.model.is_eog_token(token) {
+            .map_err(|e| BuddhiError::Config(format!("Decode failed: {}", e)))?;
+
+        // Simplified greedy decoding for intent routing
+        let mut output = String::new();
+        let mut last_token = tokens.last().copied().unwrap_or(LlamaToken(0));
+
+        for _ in 0..max_tokens {
+            let logits = ctx.get_logits();
+            let next_token_idx = logits
+                .iter()
+                .enumerate()
+                .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+                .map(|(i, _)| i as i32)
+                .unwrap_or(0);
+
+            let next_token = LlamaToken(next_token_idx);
+            if next_token == self.model.token_eos() {
                 break;
             }
-            #[allow(deprecated)]
+
             let piece = self
                 .model
-                .token_to_str(token, llama_cpp_2::model::Special::Plaintext)
-                .map_err(|e| BuddhiError::Config(format!("Detokenization failed: {}", e)))?;
-            on_token(&piece);
-            generated.push_str(&piece);
-            let mut next_batch = LlamaBatch::new(1, 1);
-            next_batch
-                .add(token, n_cur, &[0], true)
-                .map_err(|e| BuddhiError::Config(format!("Next batch add failed: {}", e)))?;
-            ctx.decode(&mut next_batch)
-                .map_err(|e| BuddhiError::Config(format!("Next decode failed: {}", e)))?;
-            batch = next_batch;
+                .token_to_str(next_token)
+                .map_err(|e| BuddhiError::Config(format!("Detokenize failed: {}", e)))?;
+            output.push_str(&piece);
+            last_token = next_token;
+
+            batch.clear();
+            batch
+                .add_token(next_token, tokens.len() as i32, 0, true)
+                .map_err(|e| BuddhiError::Config(format!("Batch add failed: {}", e)))?;
+            ctx.decode(&mut batch)
+                .map_err(|e| BuddhiError::Config(format!("Decode failed: {}", e)))?;
         }
-        Ok(generated)
+
+        Ok(Self::strip_think_blocks(&output))
     }
 }

@@ -1,59 +1,66 @@
 use crate::intent::OptimizedIntent;
 use buddhi_core::context::ContextManager;
 use buddhi_core::error::Result;
-use buddhi_inference::{InferenceEngine, LocalInferenceEngine};
+use buddhi_inference::{GgufEngine, InferenceEngine};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-/// The Optimizer decides whether to use local inference or cloud LLM.
-/// It attempts local generation first for speed, falling back to cloud
-/// if local inference is unavailable or fails.
+/// The Optimizer acts as the Local Scout, using a fast 2B GGUF model
+/// to strip reasoning blocks and route intent before calling the Cloud Brain.
 pub struct Optimizer {
-    pipeline: Option<Arc<Mutex<Box<dyn InferenceEngine>>>>,
+    scout: Option<Arc<Mutex<Box<dyn InferenceEngine>>>>,
 }
 
 impl Optimizer {
     pub fn new() -> Self {
-        // Initialize local inference engine
-
-        let engine = LocalInferenceEngine::new();
-
-        Self {
-            pipeline: Some(Arc::new(Mutex::new(
-                Box::new(engine) as Box<dyn InferenceEngine>
-            ))),
-        }
-    }
-
-    /// Optimize the user's intent by attempting local inference first.
-    pub async fn optimize(&self, prompt: &str, cm: &mut ContextManager) -> Result<OptimizedIntent> {
-        // Try local inference first
-        if let Some(pipeline) = &self.pipeline {
-            let p = pipeline.lock().await;
-            match p.generate(prompt, 120) {
-                Ok(output) => {
-                    cm.add_message(&output).ok();
-                    return self.parse_llm_output(&output);
+        // Attempt to load the local GGUF scout model
+        let model_path = PathBuf::from(".buddhi/models/qwen3.8-2b-q4_k_m.gguf");
+        let scout = if model_path.exists() {
+            match GgufEngine::new(&model_path) {
+                Ok(engine) => {
+                    tracing::info!("Local Scout initialized with Qwen3.8-2B.");
+                    Some(Arc::new(Mutex::new(
+                        Box::new(engine) as Box<dyn InferenceEngine>
+                    )))
                 }
                 Err(e) => {
-                    tracing::warn!("Local generation failed: {}", e);
+                    tracing::warn!("Failed to load local scout model: {}", e);
+                    None
                 }
+            }
+        } else {
+            tracing::info!(
+                "No local scout model found at {}. Using Cloud Brain only.",
+                model_path.display()
+            );
+            None
+        };
+
+        Self { scout }
+    }
+
+    /// Routes the prompt through the Local Scout first, then to the Cloud Brain.
+    pub async fn optimize(&self, prompt: &str, cm: &mut ContextManager) -> Result<OptimizedIntent> {
+        let mut clean_prompt = prompt.to_string();
+
+        // Phase 1: Local Scout strips <think> blocks and refines intent
+        if let Some(scout) = &self.scout {
+            let engine = scout.lock().await;
+            match engine.generate(prompt, 64) {
+                Ok(routed_intent) => {
+                    tracing::info!("Scout routed intent: {}", routed_intent);
+                    clean_prompt = format!("{}\n\nRefined Intent: {}", prompt, routed_intent);
+                    cm.add_message(&format!("[Scout]: {}", routed_intent)).ok();
+                }
+                Err(e) => tracing::warn!("Scout failed, falling back to raw prompt: {}", e),
             }
         }
 
-        // Fallback: return unoptimized intent
+        // Phase 2: Pass refined prompt to Cloud Brain (handled by AgentLoop)
         Ok(OptimizedIntent {
-            intent: prompt.to_string(),
-            confidence: 0.5,
-        })
-    }
-
-    fn parse_llm_output(&self, output: &str) -> Result<OptimizedIntent> {
-        // Parse the LLM output into an OptimizedIntent
-        // For now, return a basic intent
-        Ok(OptimizedIntent {
-            intent: output.to_string(),
-            confidence: 0.8,
+            intent: clean_prompt,
+            confidence: if self.scout.is_some() { 0.95 } else { 0.5 },
         })
     }
 }
