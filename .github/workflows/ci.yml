@@ -9,6 +9,8 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings"
+  # Required by rs-gigatoken which uses [profile.release] rustflags
+  CARGO_UNSTABLE_PROFILE_RUSTFLAGS: "true"
 
 jobs:
   quality-gates:
