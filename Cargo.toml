@@ -55,7 +55,7 @@ futures-util = "0.3"
 memmap2 = "0.9"
 tokenizers = "0.23"
 rand = "0.8"
-llama-cpp-2 = "0.1.93"
+llama-cpp-2 = { version = "0.1.93", default-features = false }
 
 [profile.release]
 opt-level = 3
