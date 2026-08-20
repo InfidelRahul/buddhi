@@ -5,11 +5,39 @@ use candle_core::Device;
 use std::path::Path;
 
 /// Trait defining the inference engine interface.
-/// Allows for multiple implementations (local, cloud, mock).
 pub trait InferenceEngine: Send + Sync {
     fn load_weights(&mut self, path: &Path) -> Result<()>;
     fn load_tokenizer(&mut self, path: &Path) -> Result<()>;
     fn generate(&self, prompt: &str, max_tokens: usize) -> Result<String>;
+}
+
+/// Determines the best available hardware device at compile/runtime.
+/// Falls back to CPU if no GPU feature is enabled or available.
+pub fn get_best_device() -> Device {
+    #[cfg(feature = "cuda")]
+    {
+        match Device::cuda_if_available(0) {
+            Ok(device) => {
+                tracing::info!("Accelerator: CUDA device selected.");
+                return device;
+            }
+            Err(e) => tracing::warn!("CUDA requested but unavailable: {}. Falling back.", e),
+        }
+    }
+
+    #[cfg(feature = "metal")]
+    {
+        match Device::new_metal(0) {
+            Ok(device) => {
+                tracing::info!("Accelerator: Apple Metal device selected.");
+                return device;
+            }
+            Err(e) => tracing::warn!("Metal requested but unavailable: {}. Falling back.", e),
+        }
+    }
+
+    tracing::info!("Accelerator: Falling back to CPU.");
+    Device::Cpu
 }
 
 /// Local inference engine implementation using candle.
@@ -21,13 +49,20 @@ pub struct LocalInferenceEngine {
 }
 
 impl LocalInferenceEngine {
-    pub fn new(device: Device) -> Self {
+    /// Instantiates the engine, automatically selecting the best hardware device.
+    pub fn new() -> Self {
         Self {
-            device,
+            device: get_best_device(),
             tokenizer: None,
             weights_loaded: false,
             _num_layers: 32,
         }
+    }
+}
+
+impl Default for LocalInferenceEngine {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -38,7 +73,7 @@ impl InferenceEngine for LocalInferenceEngine {
             .load_safetensors(path)
             .map_err(|e| BuddhiError::Config(format!("Failed to load weights: {}", e)))?;
         self.weights_loaded = true;
-        tracing::info!("Model weights loaded successfully.");
+        tracing::info!("Model weights loaded onto {:?}.", self.device);
         Ok(())
     }
 

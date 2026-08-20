@@ -15,8 +15,8 @@ pub struct Optimizer {
 impl Optimizer {
     pub fn new() -> Self {
         // Initialize local inference engine
-        let device = candle_core::Device::Cpu;
-        let engine = LocalInferenceEngine::new(device);
+
+        let engine = LocalInferenceEngine::new();
 
         Self {
             pipeline: Some(Arc::new(Mutex::new(
