@@ -9,8 +9,6 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings"
-  # Force Cargo to allow unstable features required by gigatoken
-  CARGO_UNSTABLE_PROFILE_RUSTFLAGS: "true"
 
 jobs:
   quality-gates:
@@ -31,16 +29,51 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           target
-        key: ${{ runner.os }}-cargo-nightly-0808-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-nightly-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: DIAGNOSTIC - Print dependency tree for objc2
+      run: |
+        echo "=== Searching for objc2 in dependency tree ==="
+        cargo tree -i objc2 || echo "objc2 not found in normal dependency tree"
+        echo ""
+        echo "=== Checking all dependency types ==="
+        cargo tree -e all -i objc2 2>&1 | head -100 || echo "Could not trace objc2"
+      continue-on-error: true
         
     - name: Check formatting
       run: cargo fmt --all -- --check
       
-    - name: Run Clippy
-      run: cargo clippy --all-targets --all-features -- -D warnings
+    - name: Run Clippy (default features only - no metal/cuda on Linux)
+      run: cargo clippy --all-targets -- -D warnings
       
     - name: Build
       run: cargo build --verbose --workspace
       
     - name: Run tests
       run: cargo test --verbose --workspace
+
+  metal-gates:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain (Pinned Nightly)
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: nightly
+        components: clippy
+        
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-nightly-metal-${{ hashFiles('**/Cargo.lock') }}
+        
+    - name: Run Clippy with metal feature (macOS only)
+      run: cargo clippy --all-targets --features buddhi-inference/metal -- -D warnings
+      
+    - name: Build with metal
+      run: cargo build --workspace --features buddhi-inference/metal
