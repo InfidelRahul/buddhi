@@ -1,4 +1,4 @@
-use candle_core::{Device, Result, Tensor};
+use candle_core::{Result, Tensor};
 
 /// Key-Value cache for transformer attention layers.
 /// Stores past key/value tensors to avoid recomputation during

@@ -4,4 +4,4 @@ pub mod kv_cache;
 pub mod tokenizer;
 pub mod weights;
 
-pub use engine::InferenceEngine;
+pub use engine::{InferenceEngine, LocalInferenceEngine};

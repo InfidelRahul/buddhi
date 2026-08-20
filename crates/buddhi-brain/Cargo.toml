@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+candle-core.workspace = true
 buddhi-core = { path = "../buddhi-core" }
 buddhi-heuristics = { path = "../buddhi-heuristics" }
 buddhi-inference = { path = "../buddhi-inference" }
